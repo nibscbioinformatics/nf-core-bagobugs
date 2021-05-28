@@ -1,6 +1,6 @@
 # ![nf-core/bagobugs](docs/images/nf-core-bagobugs_logo.png)
 
-**Metagenomics shotgun sequencing analytsis pipeline**.
+**Metagenomics shotgun sequencing analysis pipeline**.
 
 [![GitHub Actions CI Status](https://github.com/nf-core/bagobugs/workflows/nf-core%20CI/badge.svg)](https://github.com/nf-core/bagobugs/actions)
 [![GitHub Actions Linting Status](https://github.com/nf-core/bagobugs/workflows/nf-core%20linting/badge.svg)](https://github.com/nf-core/bagobugs/actions)
