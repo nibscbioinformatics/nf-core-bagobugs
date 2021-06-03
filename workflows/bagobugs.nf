@@ -12,20 +12,13 @@ params.summary_params = [:]
 def checkPathParamList = [ params.input, params.adapters, params.metaphlan_database ] //add back  params.multiqc_config,
 for (param in checkPathParamList) { if (param) { file(param, checkIfExists: true) } }
 
-ch_metaphlan_db = Channel.value(file("${params.metaphlan_database}", type:'dir', checkIfExists:true ))
-ch_adapters = Channel.value(file("${params.adapters}", checkIfExists:true ))
-ch_input = Channel.fromPath("${params.input}", checkIfExists:true )
-
 // Check mandatory parameters
-//if (!params.input) exit 1, 'Input samplesheet not specified!'
-//if (params.input) { ch_input = file(params.input) } else { exit 1, 'Input samplesheet not specified!' }
-//if (params.adapters) { ch_adapters = file(params.adapters) } else { exit 1, 'Adapter file not specified!' }
-//if (params.metaphlan_database) { ch_metaphlan_db = file(params.metaphlan_database) } else { exit 1, 'Metaphlan database not specified!' }
+if (params.input) { ch_input = Channel.fromPath("${params.input}", checkIfExists:true ) } else { exit 1, 'Input samplesheet not specified!' }
+if (params.adapters) { ch_adapters = Channel.value(file("${params.adapters}", checkIfExists:true )) } else { exit 1, 'Adapter file not specified!' }
+if (params.metaphlan_database) { ch_metaphlan_db = Channel.value(file("${params.metaphlan_database}", type:'dir', checkIfExists:true )) } else { exit 1, 'Metaphlan database not specified!' }
 
-//if (!params.adapters) exit 1, 'No adapter files specified'
-//if (!params.metaphlan_database) exit 1, 'No path for methaplan database supplied'
-
-// Validate input parameters - TODO create sensible tests for workflow in schema doc
+// TODO create sensible tests for workflow
+// Validate input parameters
 // Workflow.validateWorkflowParams(params, log)
 
 ////////////////////////////////////////////////////
@@ -43,8 +36,7 @@ ch_multiqc_custom_config = params.multiqc_config ? Channel.fromPath(params.multi
 def modules = params.modules.clone()
 
 def multiqc_options   = modules['multiqc']
-multiqc_options.args += params.multiqc_title ? " --title \"$params.multiqc_title\"" : ''
-
+multiqc_options.args += params.multiqc_title ? Utils.joinModuleArgs(["--title \"$params.multiqc_title\""]) : '' // think this is needed for mutliqc??
 // Modules: local
 include { GET_SOFTWARE_VERSIONS    }  from '../modules/local/get_software_versions'        addParams( options: [publish_files : ['csv':'']]    )
 include { METAPHLAN3_RUN as METAPHLAN_RUN            } from '../modules/local/metaphlan3/run/main'           addParams( options: modules['metaphlan_run']       )
@@ -62,28 +54,6 @@ include { INPUT_CHECK              } from '../subworkflows/input_check'    addPa
 include { CHECK_INPUT              } from '../subworkflows/check_input'           addParams( options: [:] )
 
 ////////////////////////////////////////////////////
-/* --  Create channel for adapters & reference databases  -- */
-////////////////////////////////////////////////////
-
-// redundancy wiht what I created above - compare output and check
-
-//if (params.metaphlan_database) {
-  //  Channel
-  //      .value(file( "${params.metaphlan_database}" ))
-  //      .set { ch_metaphlan_db }
-//} else {
- //   ch_metaphlan_db = Channel.empty()
-//}
-
-///if (params.adapters) {
-   // Channel
-     //   .value(file( "${params.adapters}" ))
-       // .set { ch_adapters }
-//} else {
-  //  ch_adapters = Channel.empty()
-//}
-
-////////////////////////////////////////////////////
 /* --           RUN MAIN WORKFLOW              -- */
 ////////////////////////////////////////////////////
 
@@ -97,7 +67,7 @@ workflow BAGOBUGS {
     * Read in sample sheet and stage inputs
     */
 
-     INPUT_CHECK (
+    INPUT_CHECK (
         ch_input
     )
 
@@ -133,7 +103,7 @@ workflow BAGOBUGS {
     ch_subsampled_reads = SEQTK_SAMPLE.out.reads
     ch_software_versions = ch_software_versions.mix(SEQTK_SAMPLE.out.version.first().ifEmpty(null))
 
-// lets include this for Evette's work
+// will try correclty include this for Evette's work
 
  //   CAT_FASTQ (
  //       ch_subsampled_reads
@@ -175,13 +145,21 @@ if (!params.skip_multiqc) {
     workflow_summary    = Workflow.paramsSummaryMultiqc(workflow, params.summary_params)
     ch_workflow_summary = Channel.value(workflow_summary)
 
+    ch_multiqc_files = Channel.empty()
+    ch_multiqc_files = ch_multiqc_files.mix(Channel.from(ch_multiqc_config))
+    ch_multiqc_files = ch_multiqc_files.mix(ch_multiqc_custom_config.collect().ifEmpty([]))
+    ch_multiqc_files = ch_multiqc_files.mix(ch_workflow_summary.collectFile(name: 'workflow_summary_mqc.yaml'))
+    ch_multiqc_files = ch_multiqc_files.mix(GET_SOFTWARE_VERSIONS.out.yaml.collect())
+    ch_multiqc_files = ch_multiqc_files.mix(FASTQC_RAW.out.zip.collect{it[1]}.ifEmpty([]))
+    ch_multiqc_files = ch_multiqc_files.mix(FASTQC_TRIMMED.out.zip.collect{it[1]}.ifEmpty([]))
+
     MULTIQC (
-            ch_multiqc_config,
-            ch_multiqc_custom_config.collect().ifEmpty([]),
-            GET_SOFTWARE_VERSIONS.out.yaml.collect(),
-            ch_workflow_summary.collectFile(name: 'workflow_summary_mqc.yaml')
-        )
-        multiqc_report = MULTIQC.out.report.toList()
+            ch_multiqc_files.collect()
+    )
+
+    multiqc_report = MULTIQC.out.report.toList()
+    ch_software_versions = ch_software_versions.mix(MULTIQC.out.version.ifEmpty(null))
+
     }
 }
 
