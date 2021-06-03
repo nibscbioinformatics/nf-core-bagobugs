@@ -1,0 +1,6 @@
+sample,fastq_1,fastq_2
+354_FD2_1,/home/AD/mgordon/DATA/microbiome_testdata/testdata/shotgun_data/354_FD2_1_S6_R1_001.fastq.gz,/home/AD/mgordon/DATA/microbiome_testdata/testdata/shotgun_data/354_FD2_1_S6_R2_001.fastq.gz
+354_FD2_2,/home/AD/mgordon/DATA/microbiome_testdata/testdata/shotgun_data/354_FD2_2_S7_R1_001.fastq.gz,/home/AD/mgordon/DATA/microbiome_testdata/testdata/shotgun_data/354_FD2_2_S7_R2_001.fastq.gz
+354_FD2_3,/home/AD/mgordon/DATA/microbiome_testdata/testdata/shotgun_data/354_FD2_3_S8_R1_001.fastq.gz,/home/AD/mgordon/DATA/microbiome_testdata/testdata/shotgun_data/354_FD2_3_S8_R2_001.fastq.gz
+354_FD2_4,/home/AD/mgordon/DATA/microbiome_testdata/testdata/shotgun_data/354_FD2_4_S9_R1_001.fastq.gz,/home/AD/mgordon/DATA/microbiome_testdata/testdata/shotgun_data/354_FD2_4_S9_R2_001.fastq.gz
+354_FD2_5,/home/AD/mgordon/DATA/microbiome_testdata/testdata/shotgun_data/354_FD2_5_S10_R1_001.fastq.gz,/home/AD/mgordon/DATA/microbiome_testdata/testdata/shotgun_data/354_FD2_5_S10_R2_001.fastq.gz
