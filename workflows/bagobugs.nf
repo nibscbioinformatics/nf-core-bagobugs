@@ -37,21 +37,23 @@ def modules = params.modules.clone()
 
 def multiqc_options   = modules['multiqc']
 multiqc_options.args += params.multiqc_title ? Utils.joinModuleArgs(["--title \"$params.multiqc_title\""]) : '' // think this is needed for mutliqc??
+
+
 // Modules: local
-include { GET_SOFTWARE_VERSIONS    }  from '../modules/local/get_software_versions'        addParams( options: [publish_files : ['csv':'']]    )
+include { GET_SOFTWARE_VERSIONS                      } from '../modules/local/get_software_versions'                          addParams( options: [publish_files : ['csv':'']]    )
 include { METAPHLAN3_RUN as METAPHLAN_RUN            } from '../modules/local/metaphlan3/run/main'           addParams( options: modules['metaphlan_run']       )
+include {MERGE_METAPHLAN_PROFILES                    } from '../modules/local/merge_metaphlan_profiles'      addParams( options: [:] )
 
 // Modules: nf-core/modules
-include { FASTQC as FASTQC_RAW     } from '../modules/nf-core/software/fastqc/main'       addParams( options: modules['fastqc_raw']            )
-include { FASTQC as FASTQC_TRIMMED } from '../modules/nf-core/software/fastqc/main'       addParams( options: modules['fastqc_trimmed']        )
-include { MULTIQC                  } from '../modules/nf-core/software/multiqc/main'      addParams( options: multiqc_options                  )
-include { SEQTK_SAMPLE             } from '../modules/nf-core/software/seqtk/sample/main' addParams( options: modules['seqtk_sample']          )
-include { BBMAP_BBDUK             }  from '../modules/nf-core/software/bbmap/bbduk/main'   addParams( options: modules['bbmap_bbduk']          )
-include { CAT_FASTQ               }  from '../modules/nf-core/software/cat/fastq/main'   addParams( options: [:] )
+include { FASTQC as FASTQC_RAW                       } from '../modules/nf-core/software/fastqc/main'       addParams( options: modules['fastqc_raw']            )
+include { FASTQC as FASTQC_TRIMMED                   } from '../modules/nf-core/software/fastqc/main'       addParams( options: modules['fastqc_trimmed']        )
+include { MULTIQC                                    } from '../modules/nf-core/software/multiqc/main'      addParams( options: multiqc_options                  )
+include { SEQTK_SAMPLE                               } from '../modules/nf-core/software/seqtk/sample/main' addParams( options: modules['seqtk_sample']          )
+include { BBMAP_BBDUK                                } from '../modules/nf-core/software/bbmap/bbduk/main'   addParams( options: modules['bbmap_bbduk']          )
+include { CAT_FASTQ                                  } from '../modules/nf-core/software/cat/fastq/main'   addParams( options: [:] )
 
 // Subworkflows: local
-include { INPUT_CHECK              } from '../subworkflows/input_check'    addParams( options: [:] )
-include { CHECK_INPUT              } from '../subworkflows/check_input'           addParams( options: [:] )
+include { INPUT_CHECK                                } from '../subworkflows/input_check'    addParams( options: [:] )
 
 ////////////////////////////////////////////////////
 /* --           RUN MAIN WORKFLOW              -- */
@@ -63,16 +65,33 @@ def multiqc_report    = []
 workflow BAGOBUGS {
     ch_software_versions = Channel.empty()
 
-    /*
-    * Read in sample sheet and stage inputs
-    */
+/*
+=====================================================
+        Sample Check & Input Staging
+=====================================================
+*/
 
     INPUT_CHECK (
         ch_input
     )
+    .map { // repeat function on each instance
+        meta, fastq ->
+            meta.id = meta.id.split('_')[0..-2].join('_') // for name (taken from sample col) split on '_'
+            [ meta, fastq ] }
+    .set { ch_fastq }
 
-    //CHECK_INPUT ()
-    //ch_raw_short_reads = CHECK_INPUT.out.raw_short_reads
+// for  samples across different runs... see Evette cat fastq step.. test this and incorporate
+
+ //      .groupTuple(by: [0]) // group by sample name
+ //   .branch { // is this creating an additional meta for if the sample has been prepared on individual or multiple sequencing
+ //       meta, fastq ->
+ //           single  : fastq.size() == 1
+ //               return [ meta, fastq.flatten() ]
+ //           multiple: fastq.size() > 1
+ //               return [ meta, fastq.flatten() ]
+ //   }
+ //   .set { ch_fastq }
+
 
 /*
 =====================================================
@@ -81,12 +100,12 @@ workflow BAGOBUGS {
 */
 
     FASTQC_RAW (
-        INPUT_CHECK.out.reads
+        ch_fastq
     )
     ch_software_versions = ch_software_versions.mix(FASTQC_RAW.out.version.first().ifEmpty(null))
 
     BBMAP_BBDUK (
-        INPUT_CHECK.out.reads,
+        ch_fastq,
         ch_adapters
     )
     ch_trimmed_reads = BBMAP_BBDUK.out.reads
@@ -122,9 +141,13 @@ workflow BAGOBUGS {
         ch_subsampled_reads,
         ch_metaphlan_db
     )
-
+    ch_metaphlan_profiles = METAPHLAN_RUN.out.profile.collect{it[1]}
     ch_software_versions = ch_software_versions.mix(METAPHLAN_RUN.out.version.first().ifEmpty(null))
 
+
+    MERGE_METAPHLAN_PROFILES (
+        ch_metaphlan_profiles
+    )
 
 /*
 ==========================================
