@@ -1,0 +1,67 @@
+name: humann
+description: HUMAnN is a tool for profiling the abundance of microbial metabolic pathways and other molecular functions from metagenomic or metatranscriptomic sequencing data.
+keywords:
+  - metagenomics
+  - profiling
+  - genefamilies
+  - pathways
+  - abundance
+  - coverage
+tools:
+  - humann:
+      description: HUMAnN: The HMP Unified Metabolic Analysis Network, version 3
+      homepage: http://huttenhower.sph.harvard.edu/humann
+      documentation: http://huttenhower.sph.harvard.edu/humann
+      tool_dev_url: https://github.com/biobakery/humann
+      doi: "https://doi.org/10.1101/2020.11.19.388223"
+      licence: ['MIT']
+
+input:
+  - meta:
+      type: map
+      description: |
+        Groovy Map containing sample information
+        e.g. [ id:'test', single_end:false ]
+  - input:
+      type: file
+      description: FastQ/FASTA/SAM/BAM/blastm8/genetable/biom file
+      pattern: "*.{fastq.gz,fasta.gz,sam,bam,m8,tsv,biom}"
+  - chocophlan:
+      type: database
+      description: Nucleotide database for pangenome search
+  - uniref:
+      type: database
+      description: Protein database for translated search
+  - bowtie2_path:
+      type: file
+      description: Bowtie2 tool file  
+
+output:
+  - meta:
+      type: map
+      description: |
+        Groovy Map containing sample information
+        e.g. [ id:'test', single_end:false ]
+  - version:
+      type: file
+      description: File containing software version
+      pattern: "*.{version.txt}"
+  - log:
+      type: file
+      description: HUMAnN log file
+      pattern: "*.{log}"
+  - genefamilies:
+      type: file
+      description: File containing the abundances of each gene family in the community in reads per kilobase (RPK) units
+      pattern: "*.{tsv}
+  - abundance:
+      type: file
+      description: File containing the abundances of each pathway in the community, also in RPK units as described for gene families
+      pattern: "*.{tsv}
+  - coverage:
+      type: file
+      description: File containing the pathway coverage
+      pattern: "*.{tsv}
+
+authors:
+  - "@kaurravneet4123"

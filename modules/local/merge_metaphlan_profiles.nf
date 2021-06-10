@@ -23,6 +23,7 @@ process MERGE_METAPHLAN_PROFILES {
 
 
     script:  // This script is bundled with the metaphlan3 tool
+    """
     merge_metaphlan_tables.py  $profiles > merged_profiles.txt
     """
 }

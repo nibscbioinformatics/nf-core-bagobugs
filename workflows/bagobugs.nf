@@ -40,20 +40,22 @@ multiqc_options.args += params.multiqc_title ? Utils.joinModuleArgs(["--title \"
 
 
 // Modules: local
-include { GET_SOFTWARE_VERSIONS                      } from '../modules/local/get_software_versions'                          addParams( options: [publish_files : ['csv':'']]    )
-include { METAPHLAN3_RUN as METAPHLAN_RUN            } from '../modules/local/metaphlan3/run/main'           addParams( options: modules['metaphlan_run']       )
-include {MERGE_METAPHLAN_PROFILES                    } from '../modules/local/merge_metaphlan_profiles'      addParams( options: [:] )
+include { GET_SOFTWARE_VERSIONS                      } from '../modules/local/get_software_versions'        addParams( options: [publish_files : ['csv':'']]     )
+include { METAPHLAN3_RUN as METAPHLAN_RUN            } from '../modules/local/metaphlan3/run/main'          addParams( options: modules['metaphlan_run']         )
+include { MERGE_METAPHLAN_PROFILES                   } from '../modules/local/merge_metaphlan_profiles'     addParams( options: [:]                              )
+include { CONCATENATE_FASTA                          } from '../modules/local/concatenate_fasta'            addParams( options: modules['concatenate_fasta']     )
+include { HUMANN as HUMANN_RUN                       } from '../modules/local/humann/main'                  addParams( options: modules['humann_run']            )
 
 // Modules: nf-core/modules
 include { FASTQC as FASTQC_RAW                       } from '../modules/nf-core/software/fastqc/main'       addParams( options: modules['fastqc_raw']            )
 include { FASTQC as FASTQC_TRIMMED                   } from '../modules/nf-core/software/fastqc/main'       addParams( options: modules['fastqc_trimmed']        )
 include { MULTIQC                                    } from '../modules/nf-core/software/multiqc/main'      addParams( options: multiqc_options                  )
 include { SEQTK_SAMPLE                               } from '../modules/nf-core/software/seqtk/sample/main' addParams( options: modules['seqtk_sample']          )
-include { BBMAP_BBDUK                                } from '../modules/nf-core/software/bbmap/bbduk/main'   addParams( options: modules['bbmap_bbduk']          )
-include { CAT_FASTQ                                  } from '../modules/nf-core/software/cat/fastq/main'   addParams( options: [:] )
+include { BBMAP_BBDUK                                } from '../modules/nf-core/software/bbmap/bbduk/main'  addParams( options: modules['bbmap_bbduk']           )
+include { CAT_FASTQ                                  } from '../modules/nf-core/software/cat/fastq/main'    addParams( options: [:]                              ) // TODO. for Evettes work
 
 // Subworkflows: local
-include { INPUT_CHECK                                } from '../subworkflows/input_check'    addParams( options: [:] )
+include { INPUT_CHECK                                } from '../subworkflows/input_check'                   addParams( options: [:]                              )
 
 ////////////////////////////////////////////////////
 /* --           RUN MAIN WORKFLOW              -- */
@@ -80,6 +82,7 @@ workflow BAGOBUGS {
             [ meta, fastq ] }
     .set { ch_fastq }
 
+// TODO
 // for  samples across different runs... see Evette cat fastq step.. test this and incorporate
 
  //      .groupTuple(by: [0]) // group by sample name
@@ -131,23 +134,50 @@ workflow BAGOBUGS {
 
 /*
 ===================================================
-        Taxonomic Classification
+        Taxonomic & Functional Classification
 ===================================================
 */
 
 // here can try if statement; if db ch not null do this, else build metaphlanDB and use output as input here (look at mag)
 
     METAPHLAN_RUN (
-        ch_subsampled_reads,
+        ch_subsampled_reads, //put back in subsampled reads later
         ch_metaphlan_db
     )
     ch_metaphlan_profiles = METAPHLAN_RUN.out.profile.collect{it[1]}
-    ch_software_versions = ch_software_versions.mix(METAPHLAN_RUN.out.version.first().ifEmpty(null))
+    ch_metaphlan_biom      = METAPHLAN_RUN.out.biom
+    ch_software_versions  = ch_software_versions.mix(METAPHLAN_RUN.out.version.first().ifEmpty(null))
 
 
     MERGE_METAPHLAN_PROFILES (
         ch_metaphlan_profiles
     )
+
+
+// HUMANN3 (Optional)
+
+if (!params.skip_humann) {
+    // Check humann parameters
+    ch_chocophlan_db = Channel.value(file("${params.chocophlan_database}", type:'dir', checkIfExists:true ))
+    ch_uniref_db     = Channel.value(file("${params.uniref_database}", type:'dir', checkIfExists:true ))
+    metaphlan_tb     = METAPHLAN_RUN.out.profile
+    metaphlan_tb.view()
+
+        // think it is OK to concat even SE data as will just write to new file
+        CONCATENATE_FASTA (
+            ch_subsampled_reads // think we need to make subsampling optional
+        )
+        ch_cat_reads = CONCATENATE_FASTA.out.joined_reads
+
+        HUMANN_RUN (
+            ch_cat_reads,
+            ch_chocophlan_db,
+            ch_uniref_db,
+            metaphlan_tb
+        )
+        ch_software_versions  = ch_software_versions.mix(HUMANN_RUN.out.version.first().ifEmpty(null))
+}
+
 
 /*
 ==========================================

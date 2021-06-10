@@ -23,7 +23,7 @@ process METAPHLAN3_RUN {
     path metaphlan_db // metaphlan database directory path (I think best to make DB required input to avoid Db autodownload attempts)
 
     output:
-    tuple val(meta), path("*_profile.txt")           ,                emit: profile
+    tuple val(meta), path("*_profile.tsv")           ,        emit: profile
     tuple val(meta), path("*.biom")          ,                emit: biom
     tuple val(meta), path('*.bowtie2out.txt'), optional:true, emit: bt2out
     path "*.version.txt"                     ,                emit: version
@@ -44,7 +44,7 @@ process METAPHLAN3_RUN {
         $bowtie2_out \\
         --bowtie2db ${metaphlan_db} \\
         --biom ${prefix}.biom \\
-        --output_file ${prefix}_profile.txt
+        --output_file ${prefix}_profile.tsv
 
     echo \$(metaphlan --version 2>&1) | awk '{print \$3}' > ${software}.version.txt
     """
