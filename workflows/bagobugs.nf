@@ -45,9 +45,7 @@ include { METAPHLAN3_RUN as METAPHLAN_RUN            } from '../modules/local/me
 include { MERGE_METAPHLAN_PROFILES                   } from '../modules/local/merge_metaphlan_profiles'     addParams( options: modules['merge_metaphlan_profiles']                            )
 include { CONCATENATE_FASTA                          } from '../modules/local/concatenate_fasta'            addParams( options: modules['concatenate_fasta']     )
 include { HUMANN as HUMANN_RUN                       } from '../modules/local/humann/main'                  addParams( options: modules['humann_run']            )
-include { MERGE_HUMANN_GENEFAMILIES                  } from '../modules/local/merge_humann_genefamilies'    addParams( options: modules['merge_humann_genefamilies']                              )
-include { MERGE_HUMANN_PATHABUNDANCE                 } from '../modules/local/merge_humann_pathabundance'   addParams( options: modules['merge_humann_pathabundance']                              )
-include { MERGE_HUMANN_PATHCOVERAGE                  } from '../modules/local/merge_humann_pathcoverage'    addParams( options: modules['merge_humann_pathcoverage']                              )
+include { MERGE_HUMANN_OUTPUT                        } from '../modules/local/merge_humann_output'          addParams( options: modules['merge_humann_output']                              )
 include { NORMALISE_HUMANN_OUTPUT                    } from '../modules/local/normalise_humann_output'      addParams( options: modules['normalise_humann_output']                              )
 
 // Modules: nf-core/modules
@@ -167,9 +165,9 @@ if (!params.skip_humann) {
     ch_uniref_db     = Channel.value(file("${params.uniref_database}", type:'dir', checkIfExists:true ))
     metaphlan_tb     = METAPHLAN_RUN.out.profile // limit chocophlan search to pangeonomes detected in metaphlan run
 
-        // think it is OK to concat even SE data as will just write to new file
+
         CONCATENATE_FASTA (
-            ch_subsampled_reads // think we need to make subsampling optional
+            ch_subsampled_reads
         )
         ch_cat_reads = CONCATENATE_FASTA.out.joined_reads
 
@@ -179,35 +177,24 @@ if (!params.skip_humann) {
             ch_uniref_db,
             metaphlan_tb
         )
-        ch_genefamilies       = HUMANN_RUN.out.genefamilies.collect{it[1]}
-       // ch_genefamilies.view()
-        ch_abundance          = HUMANN_RUN.out.abundance.collect{it[1]}
-        ch_coverage           = HUMANN_RUN.out.coverage.collect{it[1]}
         ch_software_versions  = ch_software_versions.mix(HUMANN_RUN.out.version.first().ifEmpty(null))
 
-        // Merge the metaphlan profiles (better approach?)
-        // maybe mix channels after collection then if statements in process to deal with different file types? get working first then experiment
+        // Combine humann output channels
+        ch_merge_humann        = Channel.empty()
+        ch_merge_humann        = ch_merge_humann.mix(HUMANN_RUN.out.genefamilies.collect{it[1]})
+        ch_merge_humann        = ch_merge_humann.mix(HUMANN_RUN.out.abundance.collect{it[1]})
+        ch_merge_humann        = ch_merge_humann.mix(HUMANN_RUN.out.coverage.collect{it[1]})
 
-       // ch_merge_humann        = Channel.empty()
-       // ch_merge_humann        = ch_merge_humann.mix(HUMANN_RUN.out.genefamilies.collect{it[1]})
-       // ch_merge_humann        = ch_merge_humann.mix(HUMANN_RUN.out.abundance.collect{it[1]})
-       // ch_merge_humann        = ch_merge_humann.mix(HUMANN_RUN.out.coverage.collect{it[1]})
-       // ch_merge_humann.view()
-
-        MERGE_HUMANN_GENEFAMILIES (
-            ch_genefamilies
+        MERGE_HUMANN_OUTPUT (
+            ch_merge_humann
         )
+        ch_norm_humann         = MERGE_HUMANN_OUTPUT.out
 
-        MERGE_HUMANN_PATHCOVERAGE (
-            ch_coverage
-        )
-
-        MERGE_HUMANN_PATHABUNDANCE (
-            ch_abundance
+        NORMALISE_HUMANN_OUTPUT (
+            ch_norm_humann
         )
 
 }
-
 
 /*
 ==========================================
