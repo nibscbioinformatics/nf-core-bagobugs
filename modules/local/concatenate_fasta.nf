@@ -1,5 +1,5 @@
 // Import generic module functions
-include { initOptions; saveFiles } from './functions'
+include { initOptions; saveFiles; getSoftwareName } from './functions'
 
 params.options = [:]
 options        = initOptions(params.options)
@@ -9,7 +9,7 @@ process CONCATENATE_FASTA {
     label 'process_low'
     publishDir "${params.outdir}",
         mode: params.publish_dir_mode,
-        saveAs: { filename -> saveFiles(filename:filename, options:params.options, publish_dir:'pipeline_info', publish_id:'') }
+        saveAs: { filename -> saveFiles(filename:filename, options:params.options, publish_dir:getSoftwareName(task.process), meta:meta, publish_by_meta:['id']) }
 
     conda (params.enable_conda ? "conda-forge::python=3.8.3" : null)
     if (workflow.containerEngine == 'singularity' && !params.singularity_pull_docker_container) {
@@ -26,10 +26,12 @@ process CONCATENATE_FASTA {
 
    // when:
 	// !meta.singleEnd // can't include when in script for submission to nf-core but should work well locally (maybe move to nf-script)
+    //     cat ${reads[0]} ${reads[1]} >  ${prefix}_joined.fastq.gz
+
 
     script:
     def prefix     = options.suffix ? "${meta.id}${options.suffix}" : "${meta.id}"
     """
-    cat ${reads[0]} ${reads[1]} >  ${prefix}_joined.fastq.gz
+    cat $reads >  ${prefix}_joined.fastq.gz
     """
 }

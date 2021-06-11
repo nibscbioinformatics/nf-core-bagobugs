@@ -42,9 +42,13 @@ multiqc_options.args += params.multiqc_title ? Utils.joinModuleArgs(["--title \"
 // Modules: local
 include { GET_SOFTWARE_VERSIONS                      } from '../modules/local/get_software_versions'        addParams( options: [publish_files : ['csv':'']]     )
 include { METAPHLAN3_RUN as METAPHLAN_RUN            } from '../modules/local/metaphlan3/run/main'          addParams( options: modules['metaphlan_run']         )
-include { MERGE_METAPHLAN_PROFILES                   } from '../modules/local/merge_metaphlan_profiles'     addParams( options: [:]                              )
+include { MERGE_METAPHLAN_PROFILES                   } from '../modules/local/merge_metaphlan_profiles'     addParams( options: modules['merge_metaphlan_profiles']                            )
 include { CONCATENATE_FASTA                          } from '../modules/local/concatenate_fasta'            addParams( options: modules['concatenate_fasta']     )
 include { HUMANN as HUMANN_RUN                       } from '../modules/local/humann/main'                  addParams( options: modules['humann_run']            )
+include { MERGE_HUMANN_GENEFAMILIES                  } from '../modules/local/merge_humann_genefamilies'    addParams( options: modules['merge_humann_genefamilies']                              )
+include { MERGE_HUMANN_PATHABUNDANCE                 } from '../modules/local/merge_humann_pathabundance'   addParams( options: modules['merge_humann_pathabundance']                              )
+include { MERGE_HUMANN_PATHCOVERAGE                  } from '../modules/local/merge_humann_pathcoverage'    addParams( options: modules['merge_humann_pathcoverage']                              )
+include { NORMALISE_HUMANN_OUTPUT                    } from '../modules/local/normalise_humann_output'      addParams( options: modules['normalise_humann_output']                              )
 
 // Modules: nf-core/modules
 include { FASTQC as FASTQC_RAW                       } from '../modules/nf-core/software/fastqc/main'       addParams( options: modules['fastqc_raw']            )
@@ -125,6 +129,7 @@ workflow BAGOBUGS {
     ch_subsampled_reads = SEQTK_SAMPLE.out.reads
     ch_software_versions = ch_software_versions.mix(SEQTK_SAMPLE.out.version.first().ifEmpty(null))
 
+// TODO
 // will try correclty include this for Evette's work
 
  //   CAT_FASTQ (
@@ -145,7 +150,7 @@ workflow BAGOBUGS {
         ch_metaphlan_db
     )
     ch_metaphlan_profiles = METAPHLAN_RUN.out.profile.collect{it[1]}
-    ch_metaphlan_biom      = METAPHLAN_RUN.out.biom
+    ch_metaphlan_biom     = METAPHLAN_RUN.out.biom
     ch_software_versions  = ch_software_versions.mix(METAPHLAN_RUN.out.version.first().ifEmpty(null))
 
 
@@ -160,8 +165,7 @@ if (!params.skip_humann) {
     // Check humann parameters
     ch_chocophlan_db = Channel.value(file("${params.chocophlan_database}", type:'dir', checkIfExists:true ))
     ch_uniref_db     = Channel.value(file("${params.uniref_database}", type:'dir', checkIfExists:true ))
-    metaphlan_tb     = METAPHLAN_RUN.out.profile
-    metaphlan_tb.view()
+    metaphlan_tb     = METAPHLAN_RUN.out.profile // limit chocophlan search to pangeonomes detected in metaphlan run
 
         // think it is OK to concat even SE data as will just write to new file
         CONCATENATE_FASTA (
@@ -175,7 +179,33 @@ if (!params.skip_humann) {
             ch_uniref_db,
             metaphlan_tb
         )
+        ch_genefamilies       = HUMANN_RUN.out.genefamilies.collect{it[1]}
+       // ch_genefamilies.view()
+        ch_abundance          = HUMANN_RUN.out.abundance.collect{it[1]}
+        ch_coverage           = HUMANN_RUN.out.coverage.collect{it[1]}
         ch_software_versions  = ch_software_versions.mix(HUMANN_RUN.out.version.first().ifEmpty(null))
+
+        // Merge the metaphlan profiles (better approach?)
+        // maybe mix channels after collection then if statements in process to deal with different file types? get working first then experiment
+
+       // ch_merge_humann        = Channel.empty()
+       // ch_merge_humann        = ch_merge_humann.mix(HUMANN_RUN.out.genefamilies.collect{it[1]})
+       // ch_merge_humann        = ch_merge_humann.mix(HUMANN_RUN.out.abundance.collect{it[1]})
+       // ch_merge_humann        = ch_merge_humann.mix(HUMANN_RUN.out.coverage.collect{it[1]})
+       // ch_merge_humann.view()
+
+        MERGE_HUMANN_GENEFAMILIES (
+            ch_genefamilies
+        )
+
+        MERGE_HUMANN_PATHCOVERAGE (
+            ch_coverage
+        )
+
+        MERGE_HUMANN_PATHABUNDANCE (
+            ch_abundance
+        )
+
 }
 
 

@@ -21,20 +21,20 @@ process HUMANN {
     tuple val(meta), path(input)
     path chocophlan_db
     path uniref_db
-    tuple val(meta), path(metaphlan_tb)
+    tuple val(meta), path(metaphlan_tb) // metaphlan abundance table output - restrict choocophlan pangenome analysis step to these genomes (should speed up?)
 
     output:
     tuple val(meta), path("*_HUMAnN.log")       ,                 emit: log
-    tuple val(meta), path("*_genefamilies.tsv") , optional:true,  emit: genefamilies //if input type gene table (.biom etc) genefamilies.tsv wont be created and will throw error
+    tuple val(meta), path("*_genefamilies.tsv") , optional:true,  emit: genefamilies //if input type gene table (.biom etc) genefamilies.tsv wont be created and NF will throw error
     tuple val(meta), path("*_pathabundance.tsv"),                 emit: abundance
     tuple val(meta), path("*_pathcoverage.tsv") ,                 emit: coverage
     path "*.version.txt"                        ,                 emit: version
 
     script:
     def software        = getSoftwareName(task.process)
-    def prefix          = options.suffix ? "${meta.id}${options.suffix}" : "${meta.id}"
-    def metaphlan_table = metaphlan_tb ? "--taxonomic-profile $metaphlan_tb" : ''
-    def input_format    = ("$input".contains(".fastq.gz")) ? "--input-format fastq.gz" :  ("$input".contains(".fasta")) ? "--input-format fasta" : ("$input".endsWith(".tsv")) ? "--input-format genetable" : ("$input".endsWith(".biom")) ? "--input-format biom" : ("$input".endsWith(".sam")) ? "--input-format sam" : ("$input".endsWith(".bam")) ? "--input-format sam" : ''
+    def prefix     = options.suffix ? "${meta.id}${options.suffix}" : "${meta.id}"
+    def metaphlan_table = metaphlan_tb ? "--taxonomic-profile $metaphlan_tb" : '' // need this input to bypass the methaphlan pre-screening and restrict further steps to these genomes (use metaphlan output)
+    def input_format    = ("$input".endsWith(".fastq.gz")) ? "--input-format fastq.gz" :  ("$input".endsWith(".fasta")) ? "--input-format fasta.gz" : ("$input".endsWith(".tsv")) ? "--input-format genetable" : ("$input".endsWith(".biom")) ? "--input-format biom" : ("$input".contains(".sam")) ? "--input-format sam" : ("$input".contains(".bam")) ? "--input-format bam" : ''
 
 
     """

@@ -19,11 +19,11 @@ process MERGE_METAPHLAN_PROFILES {
     path profiles
 
     output:
-    path '*.txt', emit: txt
+    path '*.tsv', emit: txt
 
 
     script:  // This script is bundled with the metaphlan3 tool
     """
-    merge_metaphlan_tables.py  $profiles > merged_profiles.txt
+    merge_metaphlan_tables.py  $profiles > merged_metaphlan_profiles.tsv
     """
 }
