@@ -1,4 +1,4 @@
-# ![nf-core/bagobugs](docs/images/nf-core-bagobugs_logo.png)
+# ![nf-core-bagobugs](docs/images/nf-core-bagobugs_logo.png)
 
 **Metagenomics shotgun sequencing analysis pipeline**.
 
@@ -70,7 +70,6 @@ By default, the pipeline currently performs the following:
 
 The nf-core/bagobugs pipeline comes with documentation about the pipeline: [usage](https://github.com/nibscbioinformatics/nf-core-bagobugs/blob/dev/docs/usage.md) and [output](https://github.com/nibscbioinformatics/nf-core-bagobugs/blob/dev/docs/output.md).
 **Detailed information about how to specify the input can be found under input specifications.**
-
 ## Credits
 
 nf-core/bagobugs was originally written by Martin Gordon & Ravneet Bhuller.

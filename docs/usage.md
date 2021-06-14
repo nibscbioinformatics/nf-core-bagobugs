@@ -1,4 +1,4 @@
-# nf-core/bagobugs: Usage
+# nf-core-bagobugs: Usage
 
 ## :warning: Please read this documentation on the nf-core website: [https://nf-co.re/bagobugs/usage](https://nf-co.re/bagobugs/usage)
 

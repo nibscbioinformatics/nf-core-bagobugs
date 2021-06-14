@@ -1,4 +1,4 @@
-# nf-core/bagobugs: Output
+# nf-core-bagobugs: Output
 
 ## Introduction
 
