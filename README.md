@@ -12,8 +12,7 @@
 
 ## Introduction
 
-<!-- TODO nf-core: Write a 1-2 sentence summary of what data the pipeline is for and what it does -->
-**nf-core/bagobugs** is a bioinformatics best-practise analysis pipeline for
+**nf-core/bagobugs** is a bioinformatics analysis pipeline for metagenomic shotgun sequencing data. The pipeline takes illumina fastq files as input, performs adapter trimming, subsampling, and taxonomic and functional profiling using the biobakery tool suite (MetaPhlAn 3.0, HUMAnN 3.0)
 
 The pipeline is built using [Nextflow](https://www.nextflow.io), a workflow tool to run tasks across multiple compute infrastructures in a very portable manner. It comes with docker containers making installation trivial and results highly reproducible.
 
@@ -21,50 +20,60 @@ The pipeline is built using [Nextflow](https://www.nextflow.io), a workflow tool
 
 1. Install [`Nextflow`](https://nf-co.re/usage/installation) (`>=20.04.0`)
 
-2. Install any of [`Docker`](https://docs.docker.com/engine/installation/), [`Singularity`](https://www.sylabs.io/guides/3.0/user-guide/), [`Podman`](https://podman.io/), [`Shifter`](https://nersc.gitlab.io/development/shifter/how-to-use/) or [`Charliecloud`](https://hpc.github.io/charliecloud/) for full pipeline reproducibility _(please only use [`Conda`](https://conda.io/miniconda.html) as a last resort; see [docs](https://nf-co.re/usage/configuration#basic-configuration-profiles))_
+2. Install any of [`Docker`](https://docs.docker.com/engine/installation/), [`Singularity`](https://www.sylabs.io/guides/3.0/user-guide/) for full pipeline reproducibility _(please only use [`Conda`](https://conda.io/miniconda.html) as a last resort; see [docs](https://nf-co.re/usage/configuration#basic-configuration-profiles))_
 
 3. Download the pipeline and test it on a minimal dataset with a single command:
 
     ```bash
-    nextflow run nf-core/bagobugs -profile test,<docker/singularity/podman/shifter/charliecloud/conda/institute>
+    nextflow run nf-core-bagobugs -profile test,<docker/singularity/conda/institute>
     ```
 
     > Please check [nf-core/configs](https://github.com/nf-core/configs#documentation) to see if a custom config file to run nf-core pipelines already exists for your Institute. If so, you can simply use `-profile <institute>` in your command. This will enable either `docker` or `singularity` and set the appropriate execution settings for your local compute environment.
+    *Note* For NIBSC HPC users, Franceso has created a `nibsc` profile for executing nextflow pipelines. This can be implemented using `-profile nibsc` at the command line.
+    > If you are using singularity then the pipeline will auto-detect this and attempt to download the Singularity images directly as opposed to performing a conversion from Docker images. If you are persistently observing issues downloading Singularity images directly due to timeout or network issues then please use the --singularity_pull_docker_container parameter to pull and convert the Docker image instead. Alternatively, it is highly recommended to use the nf-core download command to pre-download all of the required containers before running the pipeline and to set the NXF_SINGULARITY_CACHEDIR or singularity.cacheDir Nextflow options to be able to store and re-use the images from a central location for future pipeline runs.
+    > If you are using conda, it is highly recommended to use the NXF_CONDA_CACHEDIR or conda.cacheDir settings to store the environments in a central location for future pipeline runs.
+
 
 4. Start running your own analysis!
 
-    <!-- TODO nf-core: Update the example "typical command" below used to run the pipeline -->
+> Typical command for full pipeline functionality (Taxonomic & Functional profiling)
 
     ```bash
-    nextflow run nf-core/bagobugs -profile <docker/singularity/podman/shifter/charliecloud/conda/institute> --input '*_R{1,2}.fastq.gz' --genome GRCh37
+    nextflow run nf-core-bagobugs -profile <docker/singularity/conda/institute> --input '/Full/Path/To/samplesheet.csv' --adapters '/Full/Path/To/adapters.fa' --metaphlan_database '/Full/Path/To/metaphlan_database_folder' --chocophlan_database = '/Full/Path/To/metagenomics/chocophlan_database_folder'  --uniref_database = '/Full/Path/To/metagenomics/uniref_database_folder'
     ```
 
-See [usage docs](https://nf-co.re/bagobugs/usage) for all of the available options when running the pipeline.
+> Typical command for functional profiling only (MetaPhlAn3 only)
+
+    ```bash
+    nextflow run nf-core-bagobugs -profile <docker/singularity/conda/institute> --input '/Full/Path/To/samplesheet.csv' --adapters '/Full/Path/To/adapters.fa' --metaphlan_database '/Full/Path/To/metaphlan_database_folder' --skip_humann
+    ```
+
+See [usage docs](https://github.com/nibscbioinformatics/nf-core-bagobugs/tree/main/docs/usage) for all of the available options when running the pipeline.
 
 ## Pipeline Summary
 
 By default, the pipeline currently performs the following:
 
-<!-- TODO nf-core: Fill in short bullet-pointed list of default steps of pipeline -->
 
 * Sequencing quality control (`FastQC`)
+* Adapter and base quality trimming (`BBDuk`)
+* Read subsampling (`Seqtk`)
+* Taxonomic Profiling (`MetaPhlAn3`)
+* Combine MetaPhlAn3 profiles (`merge_metaphlan_profiles`)
+* Merge paired reads for HUMaNN3 input (`concatenate fastq`)
+* Functional Profiling (`HUMAnN3`)
+* Merge HUMAnN3 output profiles (`merge_humann_output`)
+* Normalise HUMAnN3 output (`normalise_human_output`)
 * Overall pipeline run summaries (`MultiQC`)
 
 ## Documentation
 
-The nf-core/bagobugs pipeline comes with documentation about the pipeline: [usage](https://nf-co.re/bagobugs/usage) and [output](https://nf-co.re/bagobugs/output).
-
-<!-- TODO nf-core: Add a brief overview of what the pipeline does and how it works -->
+The nf-core/bagobugs pipeline comes with documentation about the pipeline: [usage](https://github.com/nibscbioinformatics/nf-core-bagobugs/tree/main/docs/usage) and [output](https://github.com/nibscbioinformatics/nf-core-bagobugs/tree/main/docs/output).
+**Detailed information about how to specify the input can be found under input specifications.**
 
 ## Credits
 
 nf-core/bagobugs was originally written by Martin Gordon & Ravneet Bhuller.
-
-We thank the following people for their extensive assistance in the development
-of this pipeline:
-
-<!-- TODO nf-core: If applicable, make list of people who have also contributed -->
-
 ## Contributions and Support
 
 If you would like to contribute to this pipeline, please see the [contributing guidelines](.github/CONTRIBUTING.md).
