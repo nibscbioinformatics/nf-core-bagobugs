@@ -17,7 +17,7 @@ if (params.input) { ch_input = Channel.fromPath("${params.input}", checkIfExists
 if (params.adapters) { ch_adapters = Channel.value(file("${params.adapters}", checkIfExists:true )) } else { exit 1, 'Adapter file not specified!' }
 if (params.metaphlan_database) { ch_metaphlan_db = Channel.value(file("${params.metaphlan_database}", type:'dir', checkIfExists:true )) } else { exit 1, 'Metaphlan database not specified!' }
 
-// TODO create sensible tests for workflow
+// TODO
 // Validate input parameters
 // Workflow.validateWorkflowParams(params, log)
 
@@ -54,7 +54,7 @@ include { FASTQC as FASTQC_TRIMMED                   } from '../modules/nf-core/
 include { MULTIQC                                    } from '../modules/nf-core/software/multiqc/main'      addParams( options: multiqc_options                  )
 include { SEQTK_SAMPLE                               } from '../modules/nf-core/software/seqtk/sample/main' addParams( options: modules['seqtk_sample']          )
 include { BBMAP_BBDUK                                } from '../modules/nf-core/software/bbmap/bbduk/main'  addParams( options: modules['bbmap_bbduk']           )
-include { CAT_FASTQ                                  } from '../modules/nf-core/software/cat/fastq/main'    addParams( options: [:]                              ) // TODO. for Evettes work
+include { CAT_FASTQ                                  } from '../modules/nf-core/software/cat/fastq/main'    addParams( options: modules['cat_fastq']                             ) // TODO. for Evettes work
 
 // Subworkflows: local
 include { INPUT_CHECK                                } from '../subworkflows/input_check'                   addParams( options: [:]                              )
@@ -75,28 +75,35 @@ workflow BAGOBUGS {
 =====================================================
 */
 
-    INPUT_CHECK (
-        ch_input
-    )
-    .map { // repeat function on each instance
-        meta, fastq ->
-            meta.id = meta.id.split('_')[0..-2].join('_') // for name (taken from sample col) split on '_'
-            [ meta, fastq ] }
-    .set { ch_fastq }
-
 // TODO
 // for  samples across different runs... see Evette cat fastq step.. test this and incorporate
 
- //      .groupTuple(by: [0]) // group by sample name
- //   .branch { // is this creating an additional meta for if the sample has been prepared on individual or multiple sequencing
- //       meta, fastq ->
- //           single  : fastq.size() == 1
- //               return [ meta, fastq.flatten() ]
- //           multiple: fastq.size() > 1
- //               return [ meta, fastq.flatten() ]
- //   }
- //   .set { ch_fastq }
+    INPUT_CHECK (
+        ch_input
+    )
+    .map {
+        meta, fastq ->
+            meta.id = meta.id.split('_')[0..-2].join('_')
+            [ meta, fastq ] }
+    .groupTuple(by: [0])
+    .branch {
+        meta, fastq ->
+            single  : fastq.size() == 1
+                return [ meta, fastq.flatten() ]
+            multiple: fastq.size() > 1
+                return [ meta, fastq.flatten() ]
+    }
+    .set { ch_fastq_cat }
 
+    //
+    // MODULE: Concatenate FastQ files from same sample if required
+    //
+
+    CAT_FASTQ (
+        ch_fastq_cat.multiple
+    )
+    .mix(ch_fastq_cat.single)
+    .set { ch_fastq }
 
 /*
 =====================================================
@@ -126,14 +133,6 @@ workflow BAGOBUGS {
     )
     ch_subsampled_reads = SEQTK_SAMPLE.out.reads
     ch_software_versions = ch_software_versions.mix(SEQTK_SAMPLE.out.version.first().ifEmpty(null))
-
-// TODO
-// will try correclty include this for Evette's work
-
- //   CAT_FASTQ (
- //       ch_subsampled_reads
- //   )
- //   ch_merged_reads = CAT_FASTQ.out.reads
 
 /*
 ===================================================
