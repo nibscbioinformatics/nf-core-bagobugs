@@ -48,7 +48,7 @@ The pipeline is built using [Nextflow](https://www.nextflow.io), a workflow tool
     nextflow run nf-core-bagobugs -profile <docker/singularity/conda/institute> --input '/Full/Path/To/samplesheet.csv' --adapters '/Full/Path/To/adapters.fa' --metaphlan_database '/Full/Path/To/metaphlan_database_folder' --skip_humann
     ```
 
-See [usage docs](https://github.com/nibscbioinformatics/nf-core-bagobugs/tree/main/docs/usage) for all of the available options when running the pipeline.
+See [usage docs](https://github.com/nibscbioinformatics/nf-core-bagobugs/tree/main/docs/usage.md) for all of the available options when running the pipeline.
 
 ## Pipeline Summary
 
