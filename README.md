@@ -23,15 +23,22 @@ The pipeline is built using [Nextflow](https://www.nextflow.io), a workflow tool
 2. Install any of [`Docker`](https://docs.docker.com/engine/installation/), [`Singularity`](https://www.sylabs.io/guides/3.0/user-guide/) for full pipeline reproducibility _(please only use [`Conda`](https://conda.io/miniconda.html) as a last resort; see [docs](https://nf-co.re/usage/configuration#basic-configuration-profiles))_
 
 3. Download the pipeline and test it on a minimal dataset with a single command:
+    **Please Note** Before running the pipeline you will need to download the relevant databases. Please see the [usage](https://github.com/nibscbioinformatics/nf-core-bagobugs/blob/dev/docs/usage.md) section of this guide for further information and download links (be aware these databases are very large!)
 
     ```bash
+    ## clone pipeline into work directory
+    git clone https://github.com/nibscbioinformatics/nf-core-bagobugs.git
+    ## test pipeline to ensure it is working
     nextflow run nf-core-bagobugs -profile test,<docker/singularity/conda/institute>
     ```
 
-    > Please check [nf-core/configs](https://github.com/nf-core/configs#documentation) to see if a custom config file to run nf-core pipelines already exists for your Institute. If so, you can simply use `-profile <institute>` in your command. This will enable either `docker` or `singularity` and set the appropriate execution settings for your local compute environment.
-    *Note* For NIBSC HPC users, Franceso has created a `nibsc` profile for executing nextflow pipelines. This can be implemented using `-profile nibsc` at the command line.
-    > If you are using singularity then the pipeline will auto-detect this and attempt to download the Singularity images directly as opposed to performing a conversion from Docker images. If you are persistently observing issues downloading Singularity images directly due to timeout or network issues then please use the --singularity_pull_docker_container parameter to pull and convert the Docker image instead. Alternatively, it is highly recommended to use the nf-core download command to pre-download all of the required containers before running the pipeline and to set the NXF_SINGULARITY_CACHEDIR or singularity.cacheDir Nextflow options to be able to store and re-use the images from a central location for future pipeline runs.
-    > If you are using conda, it is highly recommended to use the NXF_CONDA_CACHEDIR or conda.cacheDir settings to store the environments in a central location for future pipeline runs.
+    * Please check [nf-core/configs](https://github.com/nf-core/configs#documentation) to see if a custom config file to run nf-core pipelines already exists for your Institute. If so, you can simply use `-profile <institute>` in your command. This will enable either `docker` or `singularity` and set the appropriate execution settings for your local compute environment.
+
+    * **Note** For NIBSC HPC users, Franceso has created a `nibsc` profile for executing nextflow pipelines. This can be implemented using `-profile nibsc` at the command line.
+
+    * If you are using singularity then the pipeline will auto-detect this and attempt to download the Singularity images directly as opposed to performing a conversion from Docker images. If you are persistently observing issues downloading Singularity images directly due to timeout or network issues then please use the --singularity_pull_docker_container parameter to pull and convert the Docker image instead. Alternatively, it is highly recommended to use the nf-core download command to pre-download all of the required containers before running the pipeline and to set the NXF_SINGULARITY_CACHEDIR or singularity.cacheDir Nextflow options to be able to store and re-use the images from a central location for future pipeline runs.
+
+    * If you are using conda, it is highly recommended to use the NXF_CONDA_CACHEDIR or conda.cacheDir settings to store the environments in a central location for future pipeline runs.
 
 
 4. Start running your own analysis!

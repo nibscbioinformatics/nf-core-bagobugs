@@ -75,9 +75,6 @@ workflow BAGOBUGS {
 =====================================================
 */
 
-// TODO
-// for  samples across different runs... see Evette cat fastq step.. test this and incorporate
-
     INPUT_CHECK (
         ch_input
     )
@@ -127,13 +124,15 @@ workflow BAGOBUGS {
         ch_trimmed_reads
     )
 
+    if (!params.skip_seqtk) {
     SEQTK_SAMPLE (
         ch_trimmed_reads,
         250000
     )
-    ch_subsampled_reads = SEQTK_SAMPLE.out.reads
+    // ch_subsampled_reads = SEQTK_SAMPLE.out.reads
+    ch_trimmed_reads = SEQTK_SAMPLE.out.reads
     ch_software_versions = ch_software_versions.mix(SEQTK_SAMPLE.out.version.first().ifEmpty(null))
-
+    }
 /*
 ===================================================
         Taxonomic & Functional Classification
@@ -143,7 +142,8 @@ workflow BAGOBUGS {
 // here can try if statement; if db ch not null do this, else build metaphlanDB and use output as input here (look at mag)
 
     METAPHLAN_RUN (
-        ch_subsampled_reads, //put back in subsampled reads later
+        //ch_subsampled_reads, //put back in subsampled reads later
+        ch_trimmed_reads,
         ch_metaphlan_db
     )
     ch_metaphlan_profiles = METAPHLAN_RUN.out.profile.collect{it[1]}
@@ -166,7 +166,8 @@ if (!params.skip_humann) {
 
 
         CONCATENATE_FASTA (
-            ch_subsampled_reads
+            ch_trimmed_reads
+            //ch_subsampled_reads
         )
         ch_cat_reads = CONCATENATE_FASTA.out.joined_reads
 
