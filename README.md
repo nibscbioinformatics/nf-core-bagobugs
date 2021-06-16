@@ -23,7 +23,7 @@ The pipeline is built using [Nextflow](https://www.nextflow.io), a workflow tool
 2. Install any of [`Docker`](https://docs.docker.com/engine/installation/), [`Singularity`](https://www.sylabs.io/guides/3.0/user-guide/) for full pipeline reproducibility _(please only use [`Conda`](https://conda.io/miniconda.html) as a last resort; see [docs](https://nf-co.re/usage/configuration#basic-configuration-profiles))_
 
 3. Download the pipeline and test it on a minimal dataset with a single command:
-    **Please Note** Before running the pipeline you will need to download the relevant databases. Please see the [usage](https://github.com/nibscbioinformatics/nf-core-bagobugs/blob/dev/docs/usage.md) section of this guide for further information and download links (be aware these databases are very large!)
+    * Before running the pipeline you will need to download the relevant databases. Please see the [usage](https://github.com/nibscbioinformatics/nf-core-bagobugs/blob/dev/docs/usage.md) section of this guide for further information and download links (be aware these databases are very large!)
 
     ```bash
     ## clone pipeline into work directory
