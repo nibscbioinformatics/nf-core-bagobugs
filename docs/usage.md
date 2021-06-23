@@ -1,9 +1,5 @@
 # nf-core-bagobugs: Usage
 
-## :warning: Please read this documentation on the nf-core website: [https://nf-co.re/bagobugs/usage](https://nf-co.re/bagobugs/usage)
-
-> _Documentation of pipeline parameters is generated automatically from the pipeline schema and can no longer be found in markdown files._
-
 ## Introduction
 
 Nextflow handles job submissions on SLURM or other environments, and supervises running the jobs. Thus the Nextflow process must run until the pipeline is finished. We recommend that you put the process running in the background through `screen` / `tmux` or similar tool. Alternatively you can run nextflow within a cluster job submitted your job scheduler.
@@ -29,7 +25,7 @@ CONTROL_REP1,/FULL/PATH/TO/AEG588A1_S1_L004_R1_001.fastq.gz,/FULL/PATH/TO/AEG588
 
 ### Full samplesheet
 
-The pipeline will auto-detect whether a sample is single- or paired-end using the information provided in the samplesheet. The samplesheet can have as many columns as you desire, however, **there is a strict requirement for the first 3 columns to match those defined in the table below.**
+The pipeline will auto-detect whether a sample is single- or paired-end using the information provided in the samplesheet. **There is a strict requirement for the first 3 columns to match those defined in the table below.**
 
 A final samplesheet file consisting of both single- and paired-end data may look something like the one below (*remember to include the commas to specify third column is empty for single-end data*). This is for 6 samples, where `TREATMENT_REP3` has been sequenced twice.
 
@@ -51,28 +47,33 @@ TREATMENT_REP3,/FULL/PATH/TO/AEG588A6_S6_L004_R1_001.fastq.gz,
 | `fastq_2`      | Full path to FastQ file for Illumina short reads 2. File has to be gzipped and have the extension ".fastq.gz" or ".fq.gz".  |
 
 
-An [example samplesheet](docs/test_samplesheet.csv) has been provided with the pipeline.
+An [example samplesheet](https://raw.githubusercontent.com/nibscbioinformatics/nf-core-bagobugs/dev/docs/test_samplesheet.csv) has been provided with the pipeline.
 
 ## Reference Databases
 
 The bagobugs pipeline requires a set of databases that are queried during its execution. These should be automatically downloaded either the first time you use the tool (MetaPhlAn), or using specialised scripts (HUMAnN), or should be created by the user. Specifically, you will need:
 
-> A FASTA file listing the adapter sequences to remove in the trimming step.
-> TODO A FASTA file describing synthetic contaminants. TODO create fastq screen module to perform automatically for our pipelines
-> TODO A FASTA file describing the contaminant (pan)genome. This file should be created by the users according to the contaminants present in their dataset and enviroment.
-> TODO Bowtie2 DB if indexing database as part of pipeline - provide database for now...
-> The Indexed MetaPhlAn database. This database has kindly been made accessible by the creator of the YAMP metagenomics nextflow pipeline and can be downloaded directly from [here](https://zenodo.org/record/4629921#.YMc87qhKg2x) (Note: this database is approximately 2GB in size)
-> The ChocoPhlAn and UniRef databases for HUMAnN. Both can be downloaded directly by HUMAnN. Please refer to the [HUMANn3 user manual](https://github.com/biobakery/humann) for further details
+  * A FASTA file listing the adapter sequences to remove in the trimming step.
+
+  * TODO A FASTA file describing synthetic contaminants. TODO create fastq screen module to perform automatically for our pipelines
+
+  * TODO A FASTA file describing the contaminant (pan)genome. This file should be created by the users according to the contaminants present in their dataset and enviroment.
+
+  * TODO Bowtie2 DB if indexing database as part of pipeline - provide database for now...
+
+  * The Indexed MetaPhlAn database. This database has kindly been made accessible by the creator of the YAMP metagenomics nextflow pipeline and can be downloaded directly from [here](https://zenodo.org/record/4629921#.YMc87qhKg2x) (Note: this database is approximately 2GB in size)
+
+  * The ChocoPhlAn and UniRef databases for HUMAnN. Both can be downloaded directly by HUMAnN. Please refer to the [HUMANn3 user manual](https://github.com/biobakery/humann) for further details on using `humann_databases --download` command to acquire the requisite databases.
 
 ## Running the pipeline
 
 The typical command for running the pipeline is as follows:
 
 ```bash
-nextflow run nf-core/bagobugs --input '/Full/Path/To/samplesheet.csv' -profile singularity
+nextflow run nf-core-bagobugs -profile singularity --input '/Full/Path/To/samplesheet.csv' --adapters '/Full/Path/To/adapters.fa' --metaphlan_database '/Full/Path/To/metaphlan_database_folder' --chocophlan_database = '/Full/Path/To/chocophlan_database_folder'  --uniref_database = '/Full/Path/To/uniref_database_folder'
 ```
 
-This will launch the pipeline with the `singularity` configuration profile. See below for more information about profiles.
+This will launch the 'full' pipeline with the `singularity` configuration profile. See below for more information about profiles.
 
 Note that the pipeline will create the following files in your working directory:
 
@@ -104,7 +105,7 @@ This version number will be logged in reports when you run the pipeline, so that
 
 ### `--input`
 
-Use this to specify the Sample names and metadata, as well as the location of your input FastQ files. For example:
+Use this to specify the sample names and metadata, as well as the location of your input FastQ files. For example:
 
 ```bash
 --input 'path/to/data/sample_data.csv'
@@ -132,7 +133,7 @@ Please note the following requirements:
 1. The directory must contain the bowtie2-indexed database (`*.bt2 extension` ), rather than simply the database download
 2. The database version must be `mpa_v30_CHOCOPhlAn_201901`. If you wish to use other versions of the metaphlan database the metaphlan3 `index` parameter must be adapted (see `tool-specific options` section below).
 
-To downnload and decompress the database, please run:
+To download and decompress the database, please run:
 ```
 wget https://zenodo.org/record/4629921/files/metaphlan_databases.tar.gz
 tar -xzf metaphlan_databases.tar.gz
@@ -146,7 +147,7 @@ Use this parameter to specify the full path to the file containing the Illumina 
 --adapters = '/Data/metagenomics/adapters.fa'
 ```
 
-### `--chocophlan_database` (HUMMAnN3 only)
+### `--chocophlan_database` (HUMAnN3 only)
 
 Use this parameter to specify the full path to the local installation of the chocophlan pangenome database. This path can specify either the complete or toy version of the chocophlan database database can be downloaded from the [HUMANN github page]()
 
@@ -159,7 +160,7 @@ Please note the following requirements:
 1. The complete chocophlan database is very large (~17 GB) so please ensure you have sufficient storage space
 
 
-### `--uniref_databas` (HUMMANn3 only)
+### `--uniref_database` (HUMMANn3 only)
 
 Use this parameter to specify the full path to the local installation of the uniref database.
 
@@ -172,6 +173,21 @@ Please note the following requirements:
 1. The complete chocophlan database is very large (34 GB) so please ensure you have sufficient storage space
 2. *Note* The translated search against the uniref database of HUMANn3 can be skipped or a substituted for a alignment against a subset of the uniref protein database. Please see the [HUMANn3 user manual](https://github.com/biobakery/humann) for further details
 
+### `--skip_multiqc`
+
+Use this parameter to skip multiqc process
+
+### `--skip_humann`
+
+Use this parameter to skip humann3 functional profiling
+
+### `--skip_seqtk`
+
+Use this parameter to skip seqtk subsampling (trimmed reads will be used directly as input for profiling)
+
+### `--subsampling_depth`
+
+Use this parameter to set the number of reads (per fastq file) to randomly subsample using seqtk
 ## Core Nextflow arguments
 
 > **NB:** These options are part of Nextflow and use a _single_ hyphen (pipeline parameters use a double-hyphen).

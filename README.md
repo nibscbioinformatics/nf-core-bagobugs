@@ -12,7 +12,7 @@
 
 ## Introduction
 
-**nf-core/bagobugs** is a bioinformatics analysis pipeline for metagenomic shotgun sequencing data. The pipeline takes illumina fastq files as input, performs adapter trimming, subsampling, and taxonomic and functional profiling using the biobakery tool suite (MetaPhlAn 3.0, HUMAnN 3.0)
+**nf-core/bagobugs** is a bioinformatics analysis pipeline for metagenomic shotgun sequencing data. The pipeline takes illumina fastq files as input, performs adapter and quality trimming, subsampling, and taxonomic and functional profiling using the biobakery tool suite (MetaPhlAn 3.0, HUMAnN 3.0)
 
 The pipeline is built using [Nextflow](https://www.nextflow.io), a workflow tool to run tasks across multiple compute infrastructures in a very portable manner. It comes with docker containers making installation trivial and results highly reproducible.
 
@@ -22,7 +22,9 @@ The pipeline is built using [Nextflow](https://www.nextflow.io), a workflow tool
 
 2. Install any of [`Docker`](https://docs.docker.com/engine/installation/), [`Singularity`](https://www.sylabs.io/guides/3.0/user-guide/) for full pipeline reproducibility _(please only use [`Conda`](https://conda.io/miniconda.html) as a last resort; see [docs](https://nf-co.re/usage/configuration#basic-configuration-profiles))_
 
-3. Download the pipeline and test it on a minimal dataset with a single command. **Important** Before running the pipeline you will need to download the relevant databases. Please see the [usage](https://github.com/nibscbioinformatics/nf-core-bagobugs/blob/dev/docs/usage.md) section of this guide for further information and download links (be aware these databases are very large!)
+3. Download the pipeline and test it on a minimal dataset with a single command.
+
+    * **Please Note** Before running the pipeline you will need to download the relevant databases. Please see the [usage](https://github.com/nibscbioinformatics/nf-core-bagobugs/blob/dev/docs/usage.md) section of this guide for further information and download links
 
     ```bash
     ## clone pipeline into work directory
@@ -35,9 +37,9 @@ The pipeline is built using [Nextflow](https://www.nextflow.io), a workflow tool
 
     * **Note** For NIBSC HPC users, Franceso has created a `nibsc` profile for executing nextflow pipelines. This can be implemented using `-profile nibsc` at the command line.
 
-    * If you are using singularity then the pipeline will auto-detect this and attempt to download the Singularity images directly as opposed to performing a conversion from Docker images. If you are persistently observing issues downloading Singularity images directly due to timeout or network issues then please use the --singularity_pull_docker_container parameter to pull and convert the Docker image instead. Alternatively, it is highly recommended to use the nf-core download command to pre-download all of the required containers before running the pipeline and to set the NXF_SINGULARITY_CACHEDIR or singularity.cacheDir Nextflow options to be able to store and re-use the images from a central location for future pipeline runs.
+    * If you are using singularity then the pipeline will auto-detect this and attempt to download the Singularity images directly as opposed to performing a conversion from Docker images. If you are persistently observing issues downloading Singularity images directly due to timeout or network issues then please use the `--singularity_pull_docker_container` parameter to pull and convert the Docker image instead. Alternatively, it is highly recommended to use the nf-core download command to pre-download all of the required containers before running the pipeline and to set the `NXF_SINGULARITY_CACHEDIR` or `singularity.cacheDir` Nextflow options to be able to store and re-use the images from a central location for future pipeline runs.
 
-    * If you are using conda, it is highly recommended to use the NXF_CONDA_CACHEDIR or conda.cacheDir settings to store the environments in a central location for future pipeline runs.
+    * If you are using conda, it is highly recommended to use the `NXF_CONDA_CACHEDIR` or `conda.cacheDir` settings to store the environments in a central location for future pipeline runs.
 
 
 4. Start running your own analysis!
@@ -45,7 +47,7 @@ The pipeline is built using [Nextflow](https://www.nextflow.io), a workflow tool
 > Typical command for full pipeline functionality (Taxonomic & Functional profiling)
 
     ```bash
-    nextflow run nf-core-bagobugs -profile <docker/singularity/conda/institute> --input '/Full/Path/To/samplesheet.csv' --adapters '/Full/Path/To/adapters.fa' --metaphlan_database '/Full/Path/To/metaphlan_database_folder' --chocophlan_database = '/Full/Path/To/metagenomics/chocophlan_database_folder'  --uniref_database = '/Full/Path/To/metagenomics/uniref_database_folder'
+    nextflow run nf-core-bagobugs -profile <docker/singularity/conda/nibsc> --input '/Full/Path/To/samplesheet.csv' --adapters '/Full/Path/To/adapters.fa' --metaphlan_database '/Full/Path/To/metaphlan_database_folder' --chocophlan_database = '/Full/Path/To/chocophlan_database_folder'  --uniref_database = '/Full/Path/To/uniref_database_folder'
     ```
 
 > Typical command for functional profiling only (MetaPhlAn3 only)

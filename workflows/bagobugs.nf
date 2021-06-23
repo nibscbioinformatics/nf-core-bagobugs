@@ -9,17 +9,13 @@ params.summary_params = [:]
 ////////////////////////////////////////////////////
 
 // Check input path parameters to see if they exist
-def checkPathParamList = [ params.input, params.adapters, params.metaphlan_database ] //add back  params.multiqc_config,
+def checkPathParamList = [ params.input, params.adapters, params.metaphlan_database ]
 for (param in checkPathParamList) { if (param) { file(param, checkIfExists: true) } }
 
 // Check mandatory parameters
 if (params.input) { ch_input = Channel.fromPath("${params.input}", checkIfExists:true ) } else { exit 1, 'Input samplesheet not specified!' }
-if (params.adapters) { ch_adapters = Channel.value(file("${params.adapters}", checkIfExists:true )) } else { exit 1, 'Adapter file not specified!' }
-if (params.metaphlan_database) { ch_metaphlan_db = Channel.value(file("${params.metaphlan_database}", type:'dir', checkIfExists:true )) } else { exit 1, 'Metaphlan database not specified!' }
-
-// TODO
-// Validate input parameters
-// Workflow.validateWorkflowParams(params, log)
+if (params.adapters) { ch_adapters = Channel.fromPath("${params.adapters}", checkIfExists:true ) } else { exit 1, 'adapters.fa not specified!' }
+if (params.metaphlan_database) { ch_metaphlan_db = Channel.fromPath("${params.metaphlan_database}", checkIfExists:true ) } else { exit 1, 'Metaphlan database  not specified!' }
 
 ////////////////////////////////////////////////////
 /* --          CONFIG FILES                    -- */
@@ -92,9 +88,11 @@ workflow BAGOBUGS {
     }
     .set { ch_fastq_cat }
 
-    //
-    // MODULE: Concatenate FastQ files from same sample if required
-    //
+/*
+=====================================================
+        Combine Multirun Fastq
+=====================================================
+*/
 
     CAT_FASTQ (
         ch_fastq_cat.multiple
@@ -104,7 +102,15 @@ workflow BAGOBUGS {
 
 /*
 =====================================================
-        Preprocessing and QC for short reads
+        Decontamination & Deduplication
+=====================================================
+*/
+
+    // TODO
+
+/*
+=====================================================
+        Preprocessing & QC
 =====================================================
 */
 
@@ -125,25 +131,25 @@ workflow BAGOBUGS {
     )
 
     if (!params.skip_seqtk) {
-    SEQTK_SAMPLE (
-        ch_trimmed_reads,
-        250000
-    )
-    // ch_subsampled_reads = SEQTK_SAMPLE.out.reads
-    ch_trimmed_reads = SEQTK_SAMPLE.out.reads
-    ch_software_versions = ch_software_versions.mix(SEQTK_SAMPLE.out.version.first().ifEmpty(null))
-    }
+        SEQTK_SAMPLE (
+            ch_trimmed_reads,
+            "${params.subsampling_depth}"
+        )
+        ch_processed_reads = SEQTK_SAMPLE.out.reads
+        ch_software_versions = ch_software_versions.mix(SEQTK_SAMPLE.out.version.first().ifEmpty(null))
+        } else {
+            ch_processed_reads = BBMAP_BBDUK.out.reads
+        }
+
 /*
 ===================================================
         Taxonomic & Functional Classification
 ===================================================
 */
-
-// here can try if statement; if db ch not null do this, else build metaphlanDB and use output as input here (look at mag)
+    // TODO metaphlan build/index DB option?
 
     METAPHLAN_RUN (
-        //ch_subsampled_reads, //put back in subsampled reads later
-        ch_trimmed_reads,
+        ch_processed_reads,
         ch_metaphlan_db
     )
     ch_metaphlan_profiles = METAPHLAN_RUN.out.profile.collect{it[1]}
@@ -155,19 +161,14 @@ workflow BAGOBUGS {
         ch_metaphlan_profiles
     )
 
-
-// HUMANN3 (Optional)
-
-if (!params.skip_humann) {
-    // Check humann parameters
-    ch_chocophlan_db = Channel.value(file("${params.chocophlan_database}", type:'dir', checkIfExists:true ))
-    ch_uniref_db     = Channel.value(file("${params.uniref_database}", type:'dir', checkIfExists:true ))
-    metaphlan_tb     = METAPHLAN_RUN.out.profile // limit chocophlan search to pangeonomes detected in metaphlan run
-
+    if (!params.skip_humann) {
+        // Check humann parameters
+        ch_chocophlan_db = Channel.fromPath("${params.chocophlan_database}", type:'dir', checkIfExists:true )
+        ch_uniref_db     = Channel.fromPath("${params.uniref_database}", type:'dir', checkIfExists:true )
+        metaphlan_tb     = METAPHLAN_RUN.out.profile // limit chocophlan search to pangeonomes detected in metaphlan run
 
         CONCATENATE_FASTA (
-            ch_trimmed_reads
-            //ch_subsampled_reads
+            ch_processed_reads
         )
         ch_cat_reads = CONCATENATE_FASTA.out.joined_reads
 
@@ -193,8 +194,7 @@ if (!params.skip_humann) {
         NORMALISE_HUMANN_OUTPUT (
             ch_norm_humann
         )
-
-}
+    }
 
 /*
 ==========================================
