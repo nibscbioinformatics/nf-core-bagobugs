@@ -14,8 +14,8 @@ for (param in checkPathParamList) { if (param) { file(param, checkIfExists: true
 
 // Check mandatory parameters
 if (params.input) { ch_input = Channel.fromPath("${params.input}", checkIfExists:true ) } else { exit 1, 'Input samplesheet not specified!' }
-if (params.adapters) { ch_adapters = Channel.fromPath("${params.adapters}", checkIfExists:true ) } else { exit 1, 'adapters.fa not specified!' }
-if (params.metaphlan_database) { ch_metaphlan_db = Channel.fromPath("${params.metaphlan_database}", checkIfExists:true ) } else { exit 1, 'Metaphlan database  not specified!' }
+if (params.adapters) { ch_adapters = Channel.value(file("${params.adapters}", checkIfExists:true )) } else { exit 1, 'adapter.fa not specified!' }
+if (params.metaphlan_database) { ch_metaphlan_db = Channel.value(file("${params.metaphlan_database}", type:'dir', checkIfExists:true )) } else { exit 1, 'Metaphlan database  not specified!' }
 
 ////////////////////////////////////////////////////
 /* --          CONFIG FILES                    -- */
@@ -34,12 +34,11 @@ def modules = params.modules.clone()
 def multiqc_options   = modules['multiqc']
 multiqc_options.args += params.multiqc_title ? Utils.joinModuleArgs(["--title \"$params.multiqc_title\""]) : '' // think this is needed for mutliqc??
 
-
 // Modules: local
 include { GET_SOFTWARE_VERSIONS                      } from '../modules/local/get_software_versions'        addParams( options: [publish_files : ['csv':'']]     )
 include { METAPHLAN3_RUN as METAPHLAN_RUN            } from '../modules/local/metaphlan3/run/main'          addParams( options: modules['metaphlan_run']         )
 include { MERGE_METAPHLAN_PROFILES                   } from '../modules/local/merge_metaphlan_profiles'     addParams( options: modules['merge_metaphlan_profiles']                            )
-include { CONCATENATE_FASTA                          } from '../modules/local/concatenate_fasta'            addParams( options: modules['concatenate_fasta']     )
+include { CONCATENATE_FASTA as MERGE_PAIRS           } from '../modules/local/concatenate_fasta'            addParams( options: modules['concatenate_fasta']     )
 include { HUMANN as HUMANN_RUN                       } from '../modules/local/humann/main'                  addParams( options: modules['humann_run']            )
 include { MERGE_HUMANN_OUTPUT                        } from '../modules/local/merge_humann_output'          addParams( options: modules['merge_humann_output']                              )
 include { NORMALISE_HUMANN_OUTPUT                    } from '../modules/local/normalise_humann_output'      addParams( options: modules['normalise_humann_output']                              )
@@ -163,14 +162,14 @@ workflow BAGOBUGS {
 
     if (!params.skip_humann) {
         // Check humann parameters
-        ch_chocophlan_db = Channel.fromPath("${params.chocophlan_database}", type:'dir', checkIfExists:true )
-        ch_uniref_db     = Channel.fromPath("${params.uniref_database}", type:'dir', checkIfExists:true )
+        ch_chocophlan_db = Channel.value(file("${params.chocophlan_database}", type:'dir', checkIfExists:true ))
+        ch_uniref_db     = Channel.value(file("${params.uniref_database}", type:'dir', checkIfExists:true ))
         metaphlan_tb     = METAPHLAN_RUN.out.profile // limit chocophlan search to pangeonomes detected in metaphlan run
 
-        CONCATENATE_FASTA (
+        MERGE_PAIRS (
             ch_processed_reads
         )
-        ch_cat_reads = CONCATENATE_FASTA.out.joined_reads
+        ch_cat_reads = MERGE_PAIRS.out.joined_reads
 
         HUMANN_RUN (
             ch_cat_reads,
