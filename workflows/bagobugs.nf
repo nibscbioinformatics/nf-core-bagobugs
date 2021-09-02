@@ -171,7 +171,6 @@ workflow BAGOBUGS {
             ch_processed_reads = BBMAP_BBDUK.out.reads
     }
 
-
 /*
 ===================================================
         Taxonomic & Functional Classification
