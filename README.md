@@ -80,7 +80,12 @@ The nf-core/bagobugs pipeline comes with documentation about the pipeline: [usag
 **Detailed information about how to specify the input can be found under input specifications.**
 ## Credits
 
-nf-core/bagobugs was originally written by Martin Gordon & Ravneet Bhuller.
+nf-core/bagobugs was originally written by Martin Gordon ([@MGordon09](https://github.com/MGordon09)).
+
+I would like to thank both Ravneet Bhuller ([@kaurravneet4123](https://github.com/kaurravneet4123))and Martin Fritzsche ([@MartinFritzsche](https://github.com/MartinFritzsche)) for their assistance in the development of this pipeline.
+
+In addition, I would like to credit the nf-core development community for providing the tools, template and scripts used in this pipeline. Special thanks also to Gregor Sturm and Harshil Patel for the `fastq_dir_to_samplesheet.py` script.
+
 ## Contributions and Support
 
 If you would like to contribute to this pipeline, please see the [contributing guidelines](.github/CONTRIBUTING.md).

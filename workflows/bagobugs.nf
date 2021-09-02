@@ -2,20 +2,33 @@
 /* --         LOCAL PARAMETER VALUES           -- */
 ////////////////////////////////////////////////////
 
-params.summary_params = [:]
+params.summary_params = [:]  //TODO def summary parameters
+// check out slack local parameter values
 
 ////////////////////////////////////////////////////
 /* --          VALIDATE INPUTS                 -- */
 ////////////////////////////////////////////////////
 
-// Check input path parameters to see if they exist
+// Check input path parameters to see if they exist TODO include optional param
+// TODO test with optional params
+// TODO tidy param naming, simplify this section
+
 def checkPathParamList = [ params.input, params.adapters, params.metaphlan_database ]
 for (param in checkPathParamList) { if (param) { file(param, checkIfExists: true) } }
 
 // Check mandatory parameters
 if (params.input) { ch_input = Channel.fromPath("${params.input}", checkIfExists:true ) } else { exit 1, 'Input samplesheet not specified!' }
-if (params.adapters) { ch_adapters = Channel.value(file("${params.adapters}", checkIfExists:true )) } else { exit 1, 'adapter.fa not specified!' }
-if (params.metaphlan_database) { ch_metaphlan_db = Channel.value(file("${params.metaphlan_database}", type:'dir', checkIfExists:true )) } else { exit 1, 'Metaphlan database  not specified!' }
+if (params.adapters) { ch_adapters = Channel.value(file("${params.adapters}", checkIfExists:true )) } else { exit 1, 'Adapter fasta file not specified!' }
+if (params.metaphlan_database) { ch_metaphlan_db = Channel.value(file("${params.metaphlan_database}", type:'dir', checkIfExists:true )) } else { exit 1, 'Metaphlan database not specified!' }
+
+// Check optional parameters
+if (!params.skip_humann)      {   // check humann3 DB
+    ch_chocophlan_db = Channel.value(file("${params.chocophlan_database}", type:'dir', checkIfExists:true ))
+    ch_uniref_db     = Channel.value(file("${params.uniref_database}", type:'dir', checkIfExists:true ))
+}
+if (!params.skip_fastqscreen) { ch_fastq_screen_conf = file(params.fastq_screen_conf) } else { exit 1, 'Fastq-screen cofig file not specified!'}
+if (!params.skip_seqtk)       { ch_subsamp_depth     = params.subsampling_depth       }
+if (!params.skip_seqtk && !params.subsampling_depth) { exit 1, 'Must specify subsampling depth per fastq file using --subsampling_depth INT if running seqtk'} // this is new; delete if not working as intended
 
 ////////////////////////////////////////////////////
 /* --          CONFIG FILES                    -- */
@@ -32,16 +45,17 @@ ch_multiqc_custom_config = params.multiqc_config ? Channel.fromPath(params.multi
 def modules = params.modules.clone()
 
 def multiqc_options   = modules['multiqc']
-multiqc_options.args += params.multiqc_title ? Utils.joinModuleArgs(["--title \"$params.multiqc_title\""]) : '' // think this is needed for mutliqc??
+multiqc_options.args += params.multiqc_title ? Utils.joinModuleArgs(["--title \"$params.multiqc_title\""]) : ''
 
 // Modules: local
 include { GET_SOFTWARE_VERSIONS                      } from '../modules/local/get_software_versions'        addParams( options: [publish_files : ['csv':'']]     )
+include { FASTQSCREEN                                } from '../modules/local/fastqscreen/main'             addParams( options: modules['fastqscreen']           )
 include { METAPHLAN3_RUN as METAPHLAN_RUN            } from '../modules/local/metaphlan3/run/main'          addParams( options: modules['metaphlan_run']         )
-include { MERGE_METAPHLAN_PROFILES                   } from '../modules/local/merge_metaphlan_profiles'     addParams( options: modules['merge_metaphlan_profiles']                            )
+include { MERGE_METAPHLAN_PROFILES                   } from '../modules/local/merge_metaphlan_profiles'     addParams( options: modules['merge_metaphlan_profiles'] )
 include { CONCATENATE_FASTA as MERGE_PAIRS           } from '../modules/local/concatenate_fasta'            addParams( options: modules['concatenate_fasta']     )
 include { HUMANN as HUMANN_RUN                       } from '../modules/local/humann/main'                  addParams( options: modules['humann_run']            )
-include { MERGE_HUMANN_OUTPUT                        } from '../modules/local/merge_humann_output'          addParams( options: modules['merge_humann_output']                              )
-include { NORMALISE_HUMANN_OUTPUT                    } from '../modules/local/normalise_humann_output'      addParams( options: modules['normalise_humann_output']                              )
+include { MERGE_HUMANN_OUTPUT                        } from '../modules/local/merge_humann_output'          addParams( options: modules['merge_humann_output'] )
+include { NORMALISE_HUMANN_OUTPUT                    } from '../modules/local/normalise_humann_output'      addParams( options: modules['normalise_humann_output'] )
 
 // Modules: nf-core/modules
 include { FASTQC as FASTQC_RAW                       } from '../modules/nf-core/software/fastqc/main'       addParams( options: modules['fastqc_raw']            )
@@ -49,7 +63,7 @@ include { FASTQC as FASTQC_TRIMMED                   } from '../modules/nf-core/
 include { MULTIQC                                    } from '../modules/nf-core/software/multiqc/main'      addParams( options: multiqc_options                  )
 include { SEQTK_SAMPLE                               } from '../modules/nf-core/software/seqtk/sample/main' addParams( options: modules['seqtk_sample']          )
 include { BBMAP_BBDUK                                } from '../modules/nf-core/software/bbmap/bbduk/main'  addParams( options: modules['bbmap_bbduk']           )
-include { CAT_FASTQ                                  } from '../modules/nf-core/software/cat/fastq/main'    addParams( options: modules['cat_fastq']                             ) // TODO. for Evettes work
+include { CAT_FASTQ                                  } from '../modules/nf-core/software/cat/fastq/main'    addParams( options: modules['cat_fastq']             )
 
 // Subworkflows: local
 include { INPUT_CHECK                                } from '../subworkflows/input_check'                   addParams( options: [:]                              )
@@ -73,12 +87,12 @@ workflow BAGOBUGS {
     INPUT_CHECK (
         ch_input
     )
-    .map {
+    .map { //apply function to all
         meta, fastq ->
-            meta.id = meta.id.split('_')[0..-2].join('_')
+            meta.id = meta.id.split('_')[0..-2].join('_') //extract sample name, not quite show why this is required??
             [ meta, fastq ] }
-    .groupTuple(by: [0])
-    .branch {
+    .groupTuple(by: [0]) // group fastq by sample name and creates new tuple (samples and read attached)
+    .branch { //forward to single or multiple output ch depending on num of elements (reads) in ch
         meta, fastq ->
             single  : fastq.size() == 1
                 return [ meta, fastq.flatten() ]
@@ -104,8 +118,16 @@ workflow BAGOBUGS {
         Decontamination & Deduplication
 =====================================================
 */
+    if (!params.skip_fastqscreen) {
+        FASTQSCREEN (
+            ch_fastq,
+            ch_fastq_screen_conf
+        )
+    ch_software_versions = ch_software_versions.mix(FASTQSCREEN.out.version.first().ifEmpty(null))
+    }
 
-    // TODO
+
+    // TODO Contaminant removal? Don't want to do this by default, perhaps could use bbduk to align reads to GCRh38 fa and remove?
 
 /*
 =====================================================
@@ -132,20 +154,21 @@ workflow BAGOBUGS {
     if (!params.skip_seqtk) {
         SEQTK_SAMPLE (
             ch_trimmed_reads,
-            "${params.subsampling_depth}"
+            ch_subsamp_depth
+            //"${params.subsampling_depth}"
         )
         ch_processed_reads = SEQTK_SAMPLE.out.reads
         ch_software_versions = ch_software_versions.mix(SEQTK_SAMPLE.out.version.first().ifEmpty(null))
-        } else {
+    } else {
             ch_processed_reads = BBMAP_BBDUK.out.reads
-        }
+    }
+
 
 /*
 ===================================================
         Taxonomic & Functional Classification
 ===================================================
 */
-    // TODO metaphlan build/index DB option?
 
     METAPHLAN_RUN (
         ch_processed_reads,
@@ -161,13 +184,13 @@ workflow BAGOBUGS {
     )
 
     if (!params.skip_humann) {
-        // Check humann parameters
-        ch_chocophlan_db = Channel.value(file("${params.chocophlan_database}", type:'dir', checkIfExists:true ))
-        ch_uniref_db     = Channel.value(file("${params.uniref_database}", type:'dir', checkIfExists:true ))
         metaphlan_tb     = METAPHLAN_RUN.out.profile // limit chocophlan search to pangeonomes detected in metaphlan run
+       // ch_chocophlan_db = Channel.value(file("${params.chocophlan_database}", type:'dir', checkIfExists:true ))
+        //ch_uniref_db     = Channel.value(file("${params.uniref_database}", type:'dir', checkIfExists:true ))
 
         MERGE_PAIRS (
-            ch_processed_reads
+            ch_trimmed_reads // humann3 uses its own form of normalisation, so no need to subsample here
+            //ch_processed_reads
         )
         ch_cat_reads = MERGE_PAIRS.out.joined_reads
 
@@ -221,6 +244,9 @@ if (!params.skip_multiqc) {
     ch_multiqc_files = ch_multiqc_files.mix(GET_SOFTWARE_VERSIONS.out.yaml.collect())
     ch_multiqc_files = ch_multiqc_files.mix(FASTQC_RAW.out.zip.collect{it[1]}.ifEmpty([]))
     ch_multiqc_files = ch_multiqc_files.mix(FASTQC_TRIMMED.out.zip.collect{it[1]}.ifEmpty([]))
+    ch_multiqc_files = ch_multiqc_files.mix(FASTQSCREEN.out.report.collect{it[1]}.ifEmpty([]))
+    ch_multiqc_files = ch_multiqc_files.mix(BBMAP_BBDUK.out.stats.collect{it[1]}.ifEmpty([]))
+
 
     MULTIQC (
             ch_multiqc_files.collect()

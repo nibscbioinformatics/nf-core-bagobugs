@@ -22,9 +22,10 @@ process BBMAP_BBDUK {
     path contaminants
 
     output:
-    tuple val(meta), path('*.fastq.gz'), emit: reads
-    tuple val(meta), path('*.log')     , emit: log
-    path '*.version.txt'               , emit: version
+    tuple val(meta), path('*.fastq.gz') , emit: reads
+    tuple val(meta), path('*.log')      , emit: log
+    tuple val(meta), path('*.stats.txt'), optional: true,  emit: stats
+    path '*.version.txt'                , emit: version
 
     script:
     def software = getSoftwareName(task.process)

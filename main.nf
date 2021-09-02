@@ -28,9 +28,9 @@ if (params.help) {
 ////////////////////////////////////////////////////
 /* --         VALIDATE PARAMETERS              -- */
 ////////////////////////////////////////////////////+
-if (params.validate_params) {
-    NfcoreSchema.validateParameters(params, json_schema, log)
-}
+//if (params.validate_params) {
+//    NfcoreSchema.validateParameters(params, json_schema, log)
+//}
 
 ////////////////////////////////////////////////////
 /* --         PRINT PARAMETER SUMMARY          -- */
@@ -54,8 +54,9 @@ if (params.enable_conda) {
 /* --            RUN WORKFLOW(S)               -- */
 ////////////////////////////////////////////////////
 
+include { BAGOBUGS } from './workflows/bagobugs'
+
 workflow {
-    include { BAGOBUGS } from './workflows/bagobugs' addParams( summary_params: summary_params )
     BAGOBUGS()
 }
 
