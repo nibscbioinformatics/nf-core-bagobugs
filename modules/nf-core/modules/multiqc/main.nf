@@ -19,6 +19,8 @@ process MULTIQC {
 
     input:
     path multiqc_files
+    path 'fastqc_raw/*'
+    path 'fastqc_trimmed/*'
 
     output:
     path "*multiqc_report.html", emit: report

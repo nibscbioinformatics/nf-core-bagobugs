@@ -11,6 +11,8 @@ params.summary_params = [:]  //TODO def summary parameters
 
 // Check input path parameters to see if they exist TODO include optional param
 // TODO test with optional params
+// TODO confirm what additional kracken output is required
+// tidy multiqc reporting; not v useful as is at the moment...
 // TODO tidy param naming, simplify this section
 
 def checkPathParamList = [ params.input, params.adapters, params.metaphlan_database ]
@@ -26,9 +28,15 @@ if (!params.skip_humann)      {   // check humann3 DB
     ch_chocophlan_db = Channel.value(file("${params.chocophlan_database}", type:'dir', checkIfExists:true ))
     ch_uniref_db     = Channel.value(file("${params.uniref_database}", type:'dir', checkIfExists:true ))
 }
+
+if (params.profiler == 'kraken2') { ch_kraken2_db  = Channel.value(file("${params.kraken2_database}", type:'dir', checkIfExists:true )) }
 if (!params.skip_fastqscreen) { ch_fastq_screen_conf = file(params.fastq_screen_conf) } else { exit 1, 'Fastq-screen cofig file not specified!'}
 if (!params.skip_seqtk)       { ch_subsamp_depth     = params.subsampling_depth       }
-if (!params.skip_seqtk && !params.subsampling_depth) { exit 1, 'Must specify subsampling depth per fastq file using --subsampling_depth INT if running seqtk'} // this is new; delete if not working as intended
+
+// sanity checks
+if (!params.skip_seqtk && !params.subsampling_depth) { exit 1, 'Must specify subsampling depth per fastq file using --subsampling_depth INT if running seqtk' } // this is new; delete if not working as intended
+if (!params.profiler) { exit 1, 'Must specify taxonomic profiler: use either `profiler=metaphlan3` or `profiler=kraken2`'}
+if (params.profiler != 'metaphlan3' && !params.skip_humann) { exit 1, 'Please specify `profiler=metaphlan3` if running HUMANn3' }
 
 ////////////////////////////////////////////////////
 /* --          CONFIG FILES                    -- */
@@ -58,12 +66,13 @@ include { MERGE_HUMANN_OUTPUT                        } from '../modules/local/me
 include { NORMALISE_HUMANN_OUTPUT                    } from '../modules/local/normalise_humann_output'      addParams( options: modules['normalise_humann_output'] )
 
 // Modules: nf-core/modules
-include { FASTQC as FASTQC_RAW                       } from '../modules/nf-core/software/fastqc/main'       addParams( options: modules['fastqc_raw']            )
-include { FASTQC as FASTQC_TRIMMED                   } from '../modules/nf-core/software/fastqc/main'       addParams( options: modules['fastqc_trimmed']        )
-include { MULTIQC                                    } from '../modules/nf-core/software/multiqc/main'      addParams( options: multiqc_options                  )
-include { SEQTK_SAMPLE                               } from '../modules/nf-core/software/seqtk/sample/main' addParams( options: modules['seqtk_sample']          )
-include { BBMAP_BBDUK                                } from '../modules/nf-core/software/bbmap/bbduk/main'  addParams( options: modules['bbmap_bbduk']           )
-include { CAT_FASTQ                                  } from '../modules/nf-core/software/cat/fastq/main'    addParams( options: modules['cat_fastq']             )
+include { FASTQC as FASTQC_RAW                       } from '../modules/nf-core/modules/fastqc/main'       addParams( options: modules['fastqc_raw']            )
+include { FASTQC as FASTQC_TRIMMED                   } from '../modules/nf-core/modules/fastqc/main'       addParams( options: modules['fastqc_trimmed']        )
+include { MULTIQC                                    } from '../modules/nf-core/modules/multiqc/main'      addParams( options: multiqc_options                  )
+include { SEQTK_SAMPLE                               } from '../modules/nf-core/modules/seqtk/sample/main' addParams( options: modules['seqtk_sample']          )
+include { BBMAP_BBDUK                                } from '../modules/nf-core/modules/bbmap/bbduk/main'  addParams( options: modules['bbmap_bbduk']           )
+include { KRAKEN2_KRAKEN2 as KRAKEN2              } from '../modules/nf-core/modules/kraken2/kraken2/main'     addParams( options: modules['kraken2']           )
+include { CAT_FASTQ                                  } from '../modules/nf-core/modules/cat/fastq/main'    addParams( options: modules['cat_fastq']             )
 
 // Subworkflows: local
 include { INPUT_CHECK                                } from '../subworkflows/input_check'                   addParams( options: [:]                              )
@@ -115,7 +124,7 @@ workflow BAGOBUGS {
 
 /*
 =====================================================
-        Decontamination & Deduplication
+        Screening & Decontamination
 =====================================================
 */
     if (!params.skip_fastqscreen) {
@@ -155,7 +164,6 @@ workflow BAGOBUGS {
         SEQTK_SAMPLE (
             ch_trimmed_reads,
             ch_subsamp_depth
-            //"${params.subsampling_depth}"
         )
         ch_processed_reads = SEQTK_SAMPLE.out.reads
         ch_software_versions = ch_software_versions.mix(SEQTK_SAMPLE.out.version.first().ifEmpty(null))
@@ -169,28 +177,37 @@ workflow BAGOBUGS {
         Taxonomic & Functional Classification
 ===================================================
 */
+    if (params.profiler == 'kraken2') {
 
-    METAPHLAN_RUN (
-        ch_processed_reads,
-        ch_metaphlan_db
-    )
-    ch_metaphlan_profiles = METAPHLAN_RUN.out.profile.collect{it[1]}
-    ch_metaphlan_biom     = METAPHLAN_RUN.out.biom
-    ch_software_versions  = ch_software_versions.mix(METAPHLAN_RUN.out.version.first().ifEmpty(null))
+        KRAKEN2 (
+            ch_processed_reads,
+            ch_kraken2_db
+        )
+        ch_software_versions  = ch_software_versions.mix(KRAKEN2.out.version.first().ifEmpty(null))
+        // TODO what do we want to do with kraken output??
+    }
+
+    if (params.profiler == 'metaphlan3') {
+
+        METAPHLAN_RUN (
+            ch_processed_reads,
+            ch_metaphlan_db
+        )
+        ch_metaphlan_profiles = METAPHLAN_RUN.out.profile.collect{it[1]}
+        ch_metaphlan_biom     = METAPHLAN_RUN.out.biom
+        ch_software_versions  = ch_software_versions.mix(METAPHLAN_RUN.out.version.first().ifEmpty(null))
 
 
-    MERGE_METAPHLAN_PROFILES (
-        ch_metaphlan_profiles
-    )
+        MERGE_METAPHLAN_PROFILES (
+            ch_metaphlan_profiles
+        )
+    }
 
-    if (!params.skip_humann) {
+    if (params.profiler == 'metaphlan3' && !params.skip_humann) {
         metaphlan_tb     = METAPHLAN_RUN.out.profile // limit chocophlan search to pangeonomes detected in metaphlan run
-       // ch_chocophlan_db = Channel.value(file("${params.chocophlan_database}", type:'dir', checkIfExists:true ))
-        //ch_uniref_db     = Channel.value(file("${params.uniref_database}", type:'dir', checkIfExists:true ))
 
         MERGE_PAIRS (
             ch_trimmed_reads // humann3 uses its own form of normalisation, so no need to subsample here
-            //ch_processed_reads
         )
         ch_cat_reads = MERGE_PAIRS.out.joined_reads
 
@@ -242,14 +259,15 @@ if (!params.skip_multiqc) {
     ch_multiqc_files = ch_multiqc_files.mix(ch_multiqc_custom_config.collect().ifEmpty([]))
     ch_multiqc_files = ch_multiqc_files.mix(ch_workflow_summary.collectFile(name: 'workflow_summary_mqc.yaml'))
     ch_multiqc_files = ch_multiqc_files.mix(GET_SOFTWARE_VERSIONS.out.yaml.collect())
-    ch_multiqc_files = ch_multiqc_files.mix(FASTQC_RAW.out.zip.collect{it[1]}.ifEmpty([]))
-    ch_multiqc_files = ch_multiqc_files.mix(FASTQC_TRIMMED.out.zip.collect{it[1]}.ifEmpty([]))
     ch_multiqc_files = ch_multiqc_files.mix(FASTQSCREEN.out.report.collect{it[1]}.ifEmpty([]))
     ch_multiqc_files = ch_multiqc_files.mix(BBMAP_BBDUK.out.stats.collect{it[1]}.ifEmpty([]))
+    ch_multiqc_files = ch_multiqc_files.mix(KRAKEN2.out.txt.collect{it[1]}.ifEmpty([]))
 
 
     MULTIQC (
-            ch_multiqc_files.collect()
+            ch_multiqc_files.collect(),
+            FASTQC_RAW.out.zip.collect{it[1]}.ifEmpty([]),
+            FASTQC_TRIMMED.out.zip.collect{it[1]}.ifEmpty([])
     )
 
     multiqc_report = MULTIQC.out.report.toList()

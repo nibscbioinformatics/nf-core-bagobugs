@@ -24,7 +24,7 @@ process BBMAP_BBDUK {
     output:
     tuple val(meta), path('*.fastq.gz') , emit: reads
     tuple val(meta), path('*.log')      , emit: log
-    tuple val(meta), path('*.stats.txt'), optional: true,  emit: stats
+    tuple val(meta), path('*.stats.txt'), optional: true,  emit: stats //added stats for multiqc module.. added param below
     path '*.version.txt'                , emit: version
 
     script:
@@ -42,6 +42,7 @@ process BBMAP_BBDUK {
         threads=$task.cpus \\
         $options.args \\
         $contaminants_fa \\
+        stats=${prefix}.bbduk.stats.txt \\
         &> ${prefix}.bbduk.log
     echo \$(bbversion.sh) > ${software}.version.txt
     """
