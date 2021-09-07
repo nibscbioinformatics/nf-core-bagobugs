@@ -62,9 +62,9 @@ The pipeline is built using [Nextflow](https://www.nextflow.io), a workflow tool
     nextflow run nf-core-bagobugs -profile <docker/singularity/conda/institute> --input '/Full/Path/To/samplesheet.csv' --adapters '/Full/Path/To/adapters.fa' --profiler kraken2 --kraken2_database '/Full/Path/To/kraken2_database_folder' --subsampling_depth 250000 --skip_humann
     ```
 
-*Notes*
--The `--classifier` parameter must be specified for the pipeline to run (please select either kraken2 or metaphlan3)
--Read subsampling is optional and can be disabled using command `skip_seqtk` in place of `-subsampling_depth VALUE`. Either command must be specified for pipeline to run.
+**Notes**
+1. The `--classifier` parameter must be specified for the pipeline to run (please select either kraken2 or metaphlan3)
+2. Read subsampling is optional and can be disabled using command `skip_seqtk` in place of `-subsampling_depth VALUE`. Either command must be specified for pipeline to run.
 
 See [usage docs](https://github.com/nibscbioinformatics/nf-core-bagobugs/blob/dev/docs/usage.md) for all of the available options when running the pipeline.
 
