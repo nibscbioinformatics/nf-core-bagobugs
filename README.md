@@ -74,7 +74,7 @@ By default, the pipeline currently performs the following:
 
 
 * Sequencing quality control (`FastQC`)
-* Sequencing quality control (`FastQ-Screen`)
+* FastQ file contaminant screening (`FastQ-Screen`)
 * Adapter and base quality trimming (`BBDuk`)
 * Read subsampling (`Seqtk`)
 * Taxonomic Profiling (`MetaPhlAn3` or `Kraken2`)
@@ -85,7 +85,7 @@ By default, the pipeline currently performs the following:
 * Normalise HUMAnN3 output (`normalise_human_output`) \*
 * Overall pipeline run summaries (`MultiQC`)
 
-\* Only available with `profiler metaphlan3` option
+\* Only available with `--profiler metaphlan3` option
 ## Documentation
 
 The nf-core/bagobugs pipeline comes with documentation about the pipeline: [usage](https://github.com/nibscbioinformatics/nf-core-bagobugs/blob/dev/docs/usage.md) and [output](https://github.com/nibscbioinformatics/nf-core-bagobugs/blob/dev/docs/output.md).
