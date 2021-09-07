@@ -60,16 +60,16 @@ An [example samplesheet](https://raw.githubusercontent.com/nibscbioinformatics/n
 The bagobugs pipeline requires a set of databases that are queried during its execution. Specifically, you will need:
 
   * A FASTA file listing the adapter sequences to remove in the trimming step. This adapters.fa file is provided by the creators of the BBTools suite [here](https://github.com/BioInfoTools/BBMap/tree/master/resources).
-  - pipeline version: BBMap 38.90
+  Pipeline version: BBMap 38.90
 
   * The Indexed MetaPhlAn database. This database has kindly been made accessible by the creator of the YAMP metagenomics nextflow pipeline and can be downloaded directly from [here](https://zenodo.org/record/4629921#.YMc87qhKg2x) (Note: this database is approximately 2GB in size)
-  - pipeline version: mpa_v30_CHOCOPhlAn_201901
+  Pipeline version: mpa_v30_CHOCOPhlAn_201901
 
   * The ChocoPhlAn and UniRef databases for HUMAnN. Both can be downloaded directly by HUMAnN. Please refer to the [HUMANn3 user manual](https://github.com/biobakery/humann) for further details on using `humann_databases --download` command to acquire the requisite databases.
-  - UniRef pipeline version: uniref90_201901b_full
+  UniRef pipeline version: uniref90_201901b_full
 
   * The Kraken2 database. Complete Bacteria RefSeq genomes were downloaded using `download_domains` python script available [here](https://github.com/R-Wright-1/peptides) in place of the `kraken2-build --dowload library` command to overcome issues with FTP file transfers. Otherwise, the Kraken2 database was built using commands available on the custom databases section of the Kraken2 [github](https://github.com/DerrickWood/kraken2/blob/master/docs/MANUAL.markdown). Pre-built versions of the genomes are made availbe by the package authors on AWS [here](https://github.com/BenLangmead/aws-indexes/blob/master/docs/k2.md).
-  - Kraken2 database version: Downloaded RefSeq genomes on 31-08-21.
+  Kraken2 database version: Downloaded RefSeq genomes on 31-08-21.
 ## Running the pipeline
 
 The typical command for running the pipeline is as follows:
