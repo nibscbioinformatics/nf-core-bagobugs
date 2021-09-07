@@ -12,7 +12,7 @@
 
 ## Introduction
 
-**nf-core/bagobugs** is a bioinformatics analysis pipeline for metagenomic shotgun sequencing data. The pipeline takes illumina fastq files as input, performs adapter and quality trimming, subsampling, and taxonomic and functional profiling using the biobakery tool suite (MetaPhlAn 3.0, HUMAnN 3.0)
+**nf-core/bagobugs** is a bioinformatics analysis pipeline for metagenomic shotgun sequencing data. The pipeline takes Illumina fastq files as input, performs adapter and quality trimming, subsampling, and taxonomic and functional profiling using the biobakery tool suite (MetaPhlAn 3.0, HUMAnN 3.0), or taxonomic profiling using Kraken2.
 
 The pipeline is built using [Nextflow](https://www.nextflow.io), a workflow tool to run tasks across multiple compute infrastructures in a very portable manner. It comes with docker containers making installation trivial and results highly reproducible.
 
@@ -47,14 +47,24 @@ The pipeline is built using [Nextflow](https://www.nextflow.io), a workflow tool
 > Typical command for full pipeline functionality (Taxonomic & Functional profiling)
 
     ```bash
-    nextflow run nf-core-bagobugs -profile <docker/singularity/conda/nibsc> --input '/Full/Path/To/samplesheet.csv' --adapters '/Full/Path/To/adapters.fa' --metaphlan_database '/Full/Path/To/metaphlan_database_folder' --chocophlan_database = '/Full/Path/To/chocophlan_database_folder'  --uniref_database = '/Full/Path/To/uniref_database_folder'
+    nextflow run nf-core-bagobugs -profile <docker/singularity/conda/nibsc> --input '/Full/Path/To/samplesheet.csv' --adapters '/Full/Path/To/adapters.fa' --profiler metaphlan3 --metaphlan_database '/Full/Path/To/metaphlan_database_folder' --chocophlan_database = '/Full/Path/To/chocophlan_database_folder'  --uniref_database = '/Full/Path/To/uniref_database_folder' --subsampling_depth 250000
     ```
 
-> Typical command for functional profiling only (MetaPhlAn3 only)
+> Typical command for taxonomic profiling only (MetaPhlAn3)
 
     ```bash
-    nextflow run nf-core-bagobugs -profile <docker/singularity/conda/institute> --input '/Full/Path/To/samplesheet.csv' --adapters '/Full/Path/To/adapters.fa' --metaphlan_database '/Full/Path/To/metaphlan_database_folder' --skip_humann
+    nextflow run nf-core-bagobugs -profile <docker/singularity/conda/institute> --input '/Full/Path/To/samplesheet.csv' --adapters '/Full/Path/To/adapters.fa' --profiler metaphlan3 --metaphlan_database '/Full/Path/To/metaphlan_database_folder' --subsampling_depth 250000 --skip_humann
     ```
+
+> Typical command for taxonomic profiling only (Kraken2)
+
+    ```bash
+    nextflow run nf-core-bagobugs -profile <docker/singularity/conda/institute> --input '/Full/Path/To/samplesheet.csv' --adapters '/Full/Path/To/adapters.fa' --profiler kraken2 --kraken2_database '/Full/Path/To/kraken2_database_folder' --subsampling_depth 250000 --skip_humann
+    ```
+
+*Notes*
+The `--classifier` parameter must be specified for the pipeline to run (please select either kraken2 or metaphlan3)
+Read subsampling is optional and can be disabled using command `skip_seqtk` in place of `-subsampling_depth VALUE`. Either command must be specified for pipeline to run.
 
 See [usage docs](https://github.com/nibscbioinformatics/nf-core-bagobugs/blob/dev/docs/usage.md) for all of the available options when running the pipeline.
 
@@ -64,16 +74,18 @@ By default, the pipeline currently performs the following:
 
 
 * Sequencing quality control (`FastQC`)
+* Sequencing quality control (`FastQ-Screen`)
 * Adapter and base quality trimming (`BBDuk`)
 * Read subsampling (`Seqtk`)
-* Taxonomic Profiling (`MetaPhlAn3`)
-* Combine MetaPhlAn3 profiles (`merge_metaphlan_profiles`)
-* Merge paired reads for HUMaNN3 input (`concatenate fastq`)
-* Functional Profiling (`HUMAnN3`)
-* Merge HUMAnN3 output profiles (`merge_humann_output`)
-* Normalise HUMAnN3 output (`normalise_human_output`)
+* Taxonomic Profiling (`MetaPhlAn3` or `Kraken2`)
+* Combine MetaPhlAn3 profiles (`merge_metaphlan_profiles`) \*
+* Merge paired reads for HUMaNN3 input (`concatenate fastq`) \*
+* Functional Profiling (`HUMAnN3`) \*
+* Merge HUMAnN3 output profiles (`merge_humann_output`) \*
+* Normalise HUMAnN3 output (`normalise_human_output`) \*
 * Overall pipeline run summaries (`MultiQC`)
 
+\* Only available with `profiler metaphlan3` option
 ## Documentation
 
 The nf-core/bagobugs pipeline comes with documentation about the pipeline: [usage](https://github.com/nibscbioinformatics/nf-core-bagobugs/blob/dev/docs/usage.md) and [output](https://github.com/nibscbioinformatics/nf-core-bagobugs/blob/dev/docs/output.md).

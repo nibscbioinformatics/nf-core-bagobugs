@@ -15,7 +15,7 @@ You will need to create a samplesheet with information about the samples you wou
 An executable Python script called [`fastq_dir_to_samplesheet.py`](https://github.com/nf-core/rnaseq/blob/master/bin/fastq_dir_to_samplesheet.py) (credit: Harshil Patel & Gregor Sturm) been provided if you would like to auto-create an input samplesheet based on a directory containing FastQ files **before** you run the pipeline (requires Python 3 installed locally) e.g.
 
 ```console
-./bin/fastq_dir_to_samplesheet.py <FASTQ_DIR> samplesheet.csv --strandedness reverse
+./bin/fastq_dir_to_samplesheet.py <FASTQ_DIR> samplesheet.csv --strandedness unstranded
 ```
 
 ### Multiple runs of the same sample
@@ -57,26 +57,25 @@ An [example samplesheet](https://raw.githubusercontent.com/nibscbioinformatics/n
 
 ## Reference Databases
 
-The bagobugs pipeline requires a set of databases that are queried during its execution. These should be automatically downloaded either the first time you use the tool (MetaPhlAn), or using specialised scripts (HUMAnN), or should be created by the user. Specifically, you will need:
+The bagobugs pipeline requires a set of databases that are queried during its execution. Specifically, you will need:
 
-  * A FASTA file listing the adapter sequences to remove in the trimming step.
-
-  * TODO A FASTA file describing synthetic contaminants. TODO create fastq screen module to perform automatically for our pipelines
-
-  * TODO A FASTA file describing the contaminant (pan)genome. This file should be created by the users according to the contaminants present in their dataset and enviroment.
-
-  * TODO Bowtie2 DB if indexing database as part of pipeline - provide database for now...
+  * A FASTA file listing the adapter sequences to remove in the trimming step. This adapters.fa file is provided by the creators of the BBTools suite [here](https://github.com/BioInfoTools/BBMap/tree/master/resources).
+  - pipeline version: BBMap 38.90
 
   * The Indexed MetaPhlAn database. This database has kindly been made accessible by the creator of the YAMP metagenomics nextflow pipeline and can be downloaded directly from [here](https://zenodo.org/record/4629921#.YMc87qhKg2x) (Note: this database is approximately 2GB in size)
+  - pipeline version: mpa_v30_CHOCOPhlAn_201901
 
   * The ChocoPhlAn and UniRef databases for HUMAnN. Both can be downloaded directly by HUMAnN. Please refer to the [HUMANn3 user manual](https://github.com/biobakery/humann) for further details on using `humann_databases --download` command to acquire the requisite databases.
+  - UniRef pipeline version: uniref90_201901b_full
 
+  * The Kraken2 database. Complete Bacteria RefSeq genomes were downloaded using `download_domains` python script available [here](https://github.com/R-Wright-1/peptides) in place of the `kraken2-build --dowload library` command to overcome issues with FTP file transfers. Otherwise, the Kraken2 database was built using commands available on the custom databases section of the Kraken2 [github](https://github.com/DerrickWood/kraken2/blob/master/docs/MANUAL.markdown). Pre-built versions of the genomes are made availbe by the package authors on AWS [here](https://github.com/BenLangmead/aws-indexes/blob/master/docs/k2.md).
+  - Kraken2 database version: Downloaded RefSeq genomes on 31-08-21.
 ## Running the pipeline
 
 The typical command for running the pipeline is as follows:
 
 ```bash
-nextflow run nf-core-bagobugs -profile singularity --input '/Full/Path/To/samplesheet.csv' --adapters '/Full/Path/To/adapters.fa' --metaphlan_database '/Full/Path/To/metaphlan_database_folder' --chocophlan_database = '/Full/Path/To/chocophlan_database_folder'  --uniref_database = '/Full/Path/To/uniref_database_folder'
+nextflow run nf-core-bagobugs -profile singularity --input '/Full/Path/To/samplesheet.csv' --adapters '/Full/Path/To/adapters.fa' --profiler metaphlan3 --metaphlan_database '/Full/Path/To/metaphlan_database_folder' --chocophlan_database = '/Full/Path/To/chocophlan_database_folder'  --uniref_database = '/Full/Path/To/uniref_database_folder' --subsampling_depth 250000
 ```
 
 This will launch the 'full' pipeline with the `singularity` configuration profile. See below for more information about profiles.
@@ -127,6 +126,11 @@ Please note the following requirements:
 
 The input is always mandatory, unless you are running a test profile
 
+### `--profiler`
+
+Use this parameter to specify the taxonomic profiler you wish to use for the analysis. Must be either metaphlan3 or kraken2.
+
+This input is always mandatory, unless you are running a test profile
 ### `--metaphlan_database`
 
 Use this parameter to specify the full path to the directory containing local installation of the bowtie2-indexed MetaPhlAn 3 marker gene database (linked above)
@@ -143,6 +147,14 @@ To download and decompress the database, please run:
 ```
 wget https://zenodo.org/record/4629921/files/metaphlan_databases.tar.gz
 tar -xzf metaphlan_databases.tar.gz
+```
+
+### `--kraken2_database`
+
+Use this to specify location of the directory containing the Kraken2 database.
+
+```bash
+--kraken2_database = '/Data/metagenomics/kraken2_databases'
 ```
 
 ### `--adapters`
@@ -179,6 +191,12 @@ Please note the following requirements:
 1. The complete chocophlan database is very large (34 GB) so please ensure you have sufficient storage space
 2. *Note* The translated search against the uniref database of HUMANn3 can be skipped or a substituted for a alignment against a subset of the uniref protein database. Please see the [HUMANn3 user manual](https://github.com/biobakery/humann) for further details
 
+### `--fastq_screen_conf`
+
+Use to specify location of the FastQ-screen configuration file. A standard config file is included in this pipeline in the `assets` directory.
+### `--skip_fastqscreen`
+
+Use this parameter to skip the fastqscreen process
 ### `--skip_multiqc`
 
 Use this parameter to skip multiqc process
@@ -193,7 +211,8 @@ Use this parameter to skip seqtk subsampling (trimmed reads will be used directl
 
 ### `--subsampling_depth`
 
-Use this parameter to set the number of reads (per fastq file) to randomly subsample using seqtk
+Use this parameter to set the number of reads (per fastq file) to randomly subsample using seqtk. One of `--skip_seqtk` or `--subsampling_depth` must be specified for the pipeline to run.
+
 ## Core Nextflow arguments
 
 > **NB:** These options are part of Nextflow and use a _single_ hyphen (pipeline parameters use a double-hyphen).
