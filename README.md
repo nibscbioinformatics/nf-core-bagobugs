@@ -63,8 +63,8 @@ The pipeline is built using [Nextflow](https://www.nextflow.io), a workflow tool
     ```
 
 *Notes*
-The `--classifier` parameter must be specified for the pipeline to run (please select either kraken2 or metaphlan3)
-Read subsampling is optional and can be disabled using command `skip_seqtk` in place of `-subsampling_depth VALUE`. Either command must be specified for pipeline to run.
+-The `--classifier` parameter must be specified for the pipeline to run (please select either kraken2 or metaphlan3)
+-Read subsampling is optional and can be disabled using command `skip_seqtk` in place of `-subsampling_depth VALUE`. Either command must be specified for pipeline to run.
 
 See [usage docs](https://github.com/nibscbioinformatics/nf-core-bagobugs/blob/dev/docs/usage.md) for all of the available options when running the pipeline.
 
@@ -88,7 +88,7 @@ By default, the pipeline currently performs the following:
 \* Only available with `--profiler metaphlan3` option
 ## Documentation
 
-The nf-core/bagobugs pipeline comes with documentation about the pipeline: [usage](https://github.com/nibscbioinformatics/nf-core-bagobugs/blob/dev/docs/usage.md) and [output](https://github.com/nibscbioinformatics/nf-core-bagobugs/blob/dev/docs/output.md).
+The nf-core/bagobugs pipeline comes with documentation about the pipeline: [usage](https://github.com/nibscbioinformatics/nf-core-bagobugs/blob/main/docs/usage.md) and [output](https://github.com/nibscbioinformatics/nf-core-bagobugs/blob/main/docs/output.md).
 **Detailed information about how to specify the input can be found under input specifications.**
 ## Credits
 
