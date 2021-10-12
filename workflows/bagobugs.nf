@@ -183,7 +183,8 @@ workflow BAGOBUGS {
             ch_kraken2_db
         )
         ch_software_versions  = ch_software_versions.mix(KRAKEN2.out.version.first().ifEmpty(null))
-        // TODO what do we want to do with kraken output??
+        ch_multiqc_files = ch_multiqc_files.mix(KRAKEN2.out.txt.collect{it[1]}.ifEmpty([]))
+	// TODO process Kraken2 output
     }
 
     if (params.profiler == 'metaphlan3') {
@@ -260,7 +261,6 @@ if (!params.skip_multiqc) {
     ch_multiqc_files = ch_multiqc_files.mix(GET_SOFTWARE_VERSIONS.out.yaml.collect())
     ch_multiqc_files = ch_multiqc_files.mix(FASTQSCREEN.out.report.collect{it[1]}.ifEmpty([]))
     ch_multiqc_files = ch_multiqc_files.mix(BBMAP_BBDUK.out.stats.collect{it[1]}.ifEmpty([]))
-    ch_multiqc_files = ch_multiqc_files.mix(KRAKEN2.out.txt.collect{it[1]}.ifEmpty([]))
 
 
     MULTIQC (
